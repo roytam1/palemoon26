@@ -288,6 +288,16 @@ CSRCS += \
   vp9_variance_sse2.c \
   variance_mmx.c \
   variance_sse2.c \
+  vp9_loopfilter_intrin_avx2.c \
+  vp9_subpixel_8t_intrin_avx2.c \
+  vp9_dct_avx2.c \
+  vp9_error_intrin_avx2.c \
+  vp9_subpel_variance_impl_intrin_avx2.c \
+  vp9_variance_avx2.c \
+  sad4d_avx2.c \
+  sad_avx2.c \
+  variance_avx2.c \
+  variance_impl_avx2.c \
   $(NULL)
 
 VPX_ASM_ENC_OFFSETS_SRCS = \
