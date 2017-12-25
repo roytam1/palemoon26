@@ -9,6 +9,7 @@
 // Implements EGLSurface and related functionality. [EGL 1.4] section 2.2 page 3.
 
 #include <tchar.h>
+#include <algorithm>
 
 #include "libEGL/Surface.h"
 
