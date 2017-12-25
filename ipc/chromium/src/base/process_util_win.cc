@@ -12,6 +12,8 @@
 #include <winternl.h>
 #include <psapi.h>
 
+#include <algorithm>
+
 #include "base/debug_util.h"
 #include "base/histogram.h"
 #include "base/logging.h"
