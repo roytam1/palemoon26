@@ -67,6 +67,7 @@
 #include "MediaStreamGraph.h"
 #include "nsIScriptError.h"
 #include "nsHostObjectProtocolHandler.h"
+#include "mozilla/dom/MediaSource.h"
 #include "MediaMetadataManager.h"
 
 #include "AudioChannelService.h"
@@ -403,6 +404,7 @@ NS_IMPL_ADDREF_INHERITED(HTMLMediaElement, nsGenericHTMLElement)
 NS_IMPL_RELEASE_INHERITED(HTMLMediaElement, nsGenericHTMLElement)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLMediaElement, nsGenericHTMLElement)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaSource)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSrcStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSrcAttrStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSourcePointer)
@@ -424,6 +426,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLMediaElement, nsGenericHTMLE
     tmp->EndSrcMediaStreamPlayback();
   }
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSrcAttrStream)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mMediaSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSourcePointer)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mLoadBlockedDoc)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSourceLoadCandidate)
@@ -590,6 +593,10 @@ void HTMLMediaElement::AbortExistingLoads()
   }
   if (mSrcStream) {
     EndSrcMediaStreamPlayback();
+  }
+  if (mMediaSource) {
+    mMediaSource->DetachElement();
+    mMediaSource = nullptr;
   }
   if (mAudioStream) {
     mAudioStream->Shutdown();
@@ -1120,6 +1127,30 @@ nsresult HTMLMediaElement::LoadResource()
     return NS_OK;
   }
 
+  if (IsMediaSourceURI(mLoadingSrc)) {
+    nsRefPtr<MediaSource> source;
+    rv = NS_GetSourceForMediaSourceURI(mLoadingSrc, getter_AddRefs(source));
+    if (NS_FAILED(rv)) {
+      nsCString specUTF8;
+      mLoadingSrc->GetSpec(specUTF8);
+      NS_ConvertUTF8toUTF16 spec(specUTF8);
+      const PRUnichar* params[] = { spec.get() };
+      ReportLoadError("MediaLoadInvalidURI", params, ArrayLength(params));
+      return rv;
+    }
+    mMediaSource = source.forget();
+    if (!mMediaSource->AttachElement(this)) {
+      // XXX(kinetik): Handle failure: run "If the media data cannot be
+      // fetched at all, due to network errors, causing the user agent to
+      // give up trying to fetch the resource" section of resource fetch
+      // algorithm.
+      return NS_ERROR_FAILURE;
+    }
+    // XXX(kinetik): Bug 881512. Wire this up properly; return from here (as
+    // MediaStreams setup does) rather than relying on mediasource->channel
+    // conversion.
+  }
+
   nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
 
   // check for a Content Security Policy to pass down to the channel
@@ -1373,7 +1404,17 @@ already_AddRefed<TimeRanges>
 HTMLMediaElement::Seekable() const
 {
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
+  if (mMediaSource) {
+    double duration = mMediaSource->Duration();
+    if (IsNaN(duration)) {
+      // Return empty range.
+    } else if (duration > 0 && IsInfinite(duration)) {
+      nsRefPtr<TimeRanges> bufferedRanges = Buffered();
+      ranges->Add(0, bufferedRanges->GetFinalEndTime());
+    } else {
+      ranges->Add(0, duration);
+    }
+  } else if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
     mDecoder->GetSeekable(ranges);
   }
   return ranges.forget();
@@ -1962,6 +2003,10 @@ HTMLMediaElement::~HTMLMediaElement()
   }
   if (mSrcStream) {
     EndSrcMediaStreamPlayback();
+  }
+  if (mMediaSource) {
+    mMediaSource->DetachElement();
+    mMediaSource = nullptr;
   }
 
   NS_ASSERTION(MediaElementTableCount(this, mLoadingSrc) == 0,
@@ -3532,7 +3577,9 @@ already_AddRefed<TimeRanges>
 HTMLMediaElement::Buffered() const
 {
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  if (mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING && mDecoder) {
+  if (mMediaSource) {
+    mMediaSource->GetBuffered(ranges);
+  } else if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
     // If GetBuffered fails we ignore the error result and just return the
     // time ranges we found up till the error.
     mDecoder->GetBuffered(ranges);

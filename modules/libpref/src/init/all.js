@@ -224,6 +224,9 @@ pref("media.navigator.enabled", true);
 // TextTrack support -- not mature enough to enable by default.
 pref("media.webvtt.enabled", false);
 
+// Whether to enable MediaSource support
+pref("media.mediasource.enabled", false);
+
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
 #endif
@@ -239,6 +242,9 @@ pref("media.autoplay.allowscripted", true);
 // The default number of decoded video frames that are enqueued in
 // MediaDecoderReader's mVideoQueue.
 pref("media.video-queue.default-size", 10);
+
+// Whether to disable the video stats to prevent fingerprinting
+pref("media.video_stats.enabled", true);
 
 // Whether to enable the audio writing APIs on the audio element
 pref("media.audio_data.enabled", true);

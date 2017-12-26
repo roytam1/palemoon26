@@ -8,6 +8,7 @@
 
 #include "base/process_util.h"
 
+#define NOMINMAX
 #include <windows.h>
 #include <winternl.h>
 #include <psapi.h>
