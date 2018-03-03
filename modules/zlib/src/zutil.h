@@ -1,5 +1,5 @@
 /* zutil.h -- internal interface and configuration of the compression library
- * Copyright (C) 1995-2013 Jean-loup Gailly.
+ * Copyright (C) 1995-2016 Jean-loup Gailly, Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
@@ -36,7 +36,9 @@
 #ifndef local
 #  define local static
 #endif
-/* compile with -Dlocal if your debugger can't find static symbols */
+/* since "static" is used to mean two completely different things in C, we
+   define "local" for the non-static meaning of "static", for readability
+   (compile with -Dlocal if your debugger can't find static symbols) */
 
 typedef unsigned char  uch;
 typedef uch FAR uchf;
@@ -98,28 +100,38 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #endif
 
 #ifdef AMIGA
-#  define OS_CODE  0x01
+#  define OS_CODE  1
 #endif
 
 #if defined(VAXC) || defined(VMS)
-#  define OS_CODE  0x02
+#  define OS_CODE  2
 #  define F_OPEN(name, mode) \
      fopen((name), (mode), "mbc=60", "ctx=stm", "rfm=fix", "mrs=512")
 #endif
 
+#ifdef __370__
+#  if __TARGET_LIB__ < 0x20000000
+#    define OS_CODE 4
+#  elif __TARGET_LIB__ < 0x40000000
+#    define OS_CODE 11
+#  else
+#    define OS_CODE 8
+#  endif
+#endif
+
 #if defined(ATARI) || defined(atarist)
-#  define OS_CODE  0x05
+#  define OS_CODE  5
 #endif
 
 #ifdef OS2
-#  define OS_CODE  0x06
+#  define OS_CODE  6
 #  if defined(M_I86) && !defined(Z_SOLO)
 #    include <malloc.h>
 #  endif
 #endif
 
 #if defined(MACOS) || defined(TARGET_OS_MAC)
-#  define OS_CODE  0x07
+#  define OS_CODE  7
 #  ifndef Z_SOLO
 #    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
 #      include <unix.h> /* for fdopen */
@@ -131,18 +143,24 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  endif
 #endif
 
-#ifdef TOPS20
-#  define OS_CODE  0x0a
+#ifdef __acorn
+#  define OS_CODE 13
 #endif
 
-#ifdef WIN32
-#  ifndef __CYGWIN__  /* Cygwin is Unix, not Win32 */
-#    define OS_CODE  0x0b
-#  endif
+#if defined(WIN32) && !defined(__CYGWIN__)
+#  define OS_CODE  10
 #endif
 
-#ifdef __50SERIES /* Prime/PRIMOS */
-#  define OS_CODE  0x0f
+#ifdef _BEOS_
+#  define OS_CODE  16
+#endif
+
+#ifdef __TOS_OS400__
+#  define OS_CODE 18
+#endif
+
+#ifdef __APPLE__
+#  define OS_CODE 19
 #endif
 
 #if defined(_BEOS_) || defined(RISCOS)
@@ -177,7 +195,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
         /* common defaults */
 
 #ifndef OS_CODE
-#  define OS_CODE  0x03  /* assume Unix */
+#  define OS_CODE  3     /* assume Unix */
 #endif
 
 #ifndef F_OPEN
@@ -215,13 +233,8 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
    void ZLIB_INTERNAL zmemzero OF((Bytef* dest, uInt len));
 #endif
 
-/* Ignore the Mozilla build env's DEBUG unless ZLIB_DEBUG is also set. */
-#ifndef ZLIB_DEBUG
-#undef DEBUG
-#endif
-
 /* Diagnostic functions */
-#ifdef DEBUG
+#ifdef ZLIB_DEBUG
 #  include <stdio.h>
    extern int ZLIB_INTERNAL z_verbose;
    extern void ZLIB_INTERNAL z_error OF((char *m));
@@ -251,8 +264,53 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #define ZFREE(strm, addr)  (*((strm)->zfree))((strm)->opaque, (voidpf)(addr))
 #define TRY_FREE(s, p) {if (p) ZFREE(s, p);}
 
-/* Reverse the bytes in a 32-bit value */
-#define ZSWAP32(q) ((((q) >> 24) & 0xff) + (((q) >> 8) & 0xff00) + \
+   /* Reverse the bytes in a 32-bit value. Use compiler intrinsics when
+   possible to take advantage of hardware implementations. */
+#if defined(_WIN32) && (_MSC_VER >= 1300)
+#  pragma intrinsic(_byteswap_ulong)
+#  define ZSWAP32(q) _byteswap_ulong(q)
+
+#elif defined(__Clang__) || (defined(__GNUC__) && \
+        (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)))
+#  define ZSWAP32(q) __builtin_bswap32(q)
+
+#elif defined(__GNUC__) && (__GNUC__ >= 2) && defined(__linux__)
+#  include <byteswap.h>
+#  define ZSWAP32(q) bswap_32(q)
+
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+#  include <sys/endian.h>
+#  define ZSWAP32(q) bswap32(q)
+
+#elif defined(__INTEL_COMPILER)
+#  define ZSWAP32(q) _bswap(q)
+
+#else
+#  define ZSWAP32(q) ((((q) >> 24) & 0xff) + (((q) >> 8) & 0xff00) + \
                     (((q) & 0xff00) << 8) + (((q) & 0xff) << 24))
+#endif /* ZSWAP32 */
+
+/* Only enable likely/unlikely if the compiler is known to support it */
+#if (defined(__GNUC__) && (__GNUC__ >= 3)) || defined(__INTEL_COMPILER) || defined(__Clang__)
+#  ifndef likely
+#    define likely(x)      __builtin_expect(!!(x), 1)
+#  endif
+#  ifndef unlikely
+#    define unlikely(x)    __builtin_expect(!!(x), 0)
+#  endif
+#else
+#  ifndef likely
+#    define likely(x)      x
+#  endif
+#  ifndef unlikely
+#    define unlikely(x)    x
+#  endif
+#endif /* (un)likely */
+
+#ifdef _MSC_VER
+#define zalign(x) __declspec(align(x))
+#else
+#define zalign(x) __attribute__((aligned((x))))
+#endif
 
 #endif /* ZUTIL_H */

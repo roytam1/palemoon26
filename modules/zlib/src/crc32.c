@@ -21,6 +21,22 @@
   DYNAMIC_CRC_TABLE and MAKECRCH can be #defined to write out crc32.h.
  */
 
+#ifdef __MINGW32__
+# include <sys/param.h>
+#elif _WIN32
+# define LITTLE_ENDIAN 1234
+# define BIG_ENDIAN 4321
+# if defined(_M_IX86) || defined(_M_AMD64) || defined(_M_IA64) || defined(_M_ARM)
+#  define BYTE_ORDER LITTLE_ENDIAN
+# else
+#  error Unknown endianness!
+# endif
+#elif __APPLE__
+# include <machine/endian.h>
+#else
+# include <endian.h>
+#endif
+
 #ifdef MAKECRCH
 #  include <stdio.h>
 #  ifndef DYNAMIC_CRC_TABLE
@@ -28,6 +44,8 @@
 #  endif /* !DYNAMIC_CRC_TABLE */
 #endif /* MAKECRCH */
 
+#include "deflate.h"
+#include "x86.h"
 #include "zutil.h"      /* for STDC and FAR definitions */
 
 #define local static
@@ -37,10 +55,13 @@
 #  define BYFOUR
 #endif
 #ifdef BYFOUR
-   local unsigned long crc32_little OF((unsigned long,
-                        const unsigned char FAR *, unsigned));
-   local unsigned long crc32_big OF((unsigned long,
-                        const unsigned char FAR *, unsigned));
+#if BYTE_ORDER == LITTLE_ENDIAN
+local unsigned long crc32_little OF((unsigned long,
+    const unsigned char FAR *, z_size_t));
+#elif BYTE_ORDER == BIG_ENDIAN
+local unsigned long crc32_big OF((unsigned long,
+    const unsigned char FAR *, z_size_t));
+#endif
 #  define TBLS 8
 #else
 #  define TBLS 1
@@ -199,12 +220,13 @@ const z_crc_t FAR * ZEXPORT get_crc_table()
 /* ========================================================================= */
 #define DO1 crc = crc_table[0][((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8)
 #define DO8 DO1; DO1; DO1; DO1; DO1; DO1; DO1; DO1
+#define DO4 DO1; DO1; DO1; DO1
 
 /* ========================================================================= */
-unsigned long ZEXPORT crc32(crc, buf, len)
+unsigned long ZEXPORT crc32_z(crc, buf, len)
     unsigned long crc;
     const unsigned char FAR *buf;
-    uInt len;
+    z_size_t len;
 {
     if (buf == Z_NULL) return 0UL;
 
@@ -215,55 +237,77 @@ unsigned long ZEXPORT crc32(crc, buf, len)
 
 #ifdef BYFOUR
     if (sizeof(void *) == sizeof(ptrdiff_t)) {
-        z_crc_t endian;
-
-        endian = 1;
-        if (*((unsigned char *)(&endian)))
-            return crc32_little(crc, buf, len);
-        else
-            return crc32_big(crc, buf, len);
+#if BYTE_ORDER == LITTLE_ENDIAN
+        return crc32_little(crc, buf, len);
+#elif BYTE_ORDER == BIG_ENDIAN
+        return crc32_big(crc, buf, len);
+#endif
     }
 #endif /* BYFOUR */
     crc = crc ^ 0xffffffffUL;
+#ifdef UNROLL_LESS
+    while (len >= 4) {
+        DO4;
+        len -= 4;
+    }
+#else
     while (len >= 8) {
         DO8;
         len -= 8;
     }
+#endif 
     if (len) do {
         DO1;
     } while (--len);
     return crc ^ 0xffffffffUL;
 }
 
+/* ========================================================================= */
+unsigned long ZEXPORT crc32(crc, buf, len)
+    unsigned long crc;
+    const unsigned char FAR *buf;
+    uInt len;
+{
+    return crc32_z(crc, buf, len);
+}
+
 #ifdef BYFOUR
 
 /* ========================================================================= */
-#define DOLIT4 c ^= *buf4++; \
-        c = crc_table[3][c & 0xff] ^ crc_table[2][(c >> 8) & 0xff] ^ \
-            crc_table[1][(c >> 16) & 0xff] ^ crc_table[0][c >> 24]
+#define DOLIT4 tmp = *buf4++ ^ c; \
+        c = crc_table[3][tmp & 0xff] ^ crc_table[2][(tmp >> 8) & 0xff] ^ \
+            crc_table[1][(tmp >> 16) & 0xff] ^ crc_table[0][tmp >> 24]
 #define DOLIT32 DOLIT4; DOLIT4; DOLIT4; DOLIT4; DOLIT4; DOLIT4; DOLIT4; DOLIT4
 
 /* ========================================================================= */
 local unsigned long crc32_little(crc, buf, len)
     unsigned long crc;
     const unsigned char FAR *buf;
-    unsigned len;
+    z_size_t len;
 {
     register z_crc_t c;
+    register z_crc_t tmp;
     register const z_crc_t FAR *buf4;
 
     c = (z_crc_t)crc;
     c = ~c;
+    // This has a negative performance impact on modern CPUs (Intel Ivy Bridge etc.)
+    // Disabling the alignment loop improves performance by ~10%
+#if 0
     while (len && ((ptrdiff_t)buf & 3)) {
         c = crc_table[0][(c ^ *buf++) & 0xff] ^ (c >> 8);
         len--;
     }
-
+#endif
     buf4 = (const z_crc_t FAR *)(const void FAR *)buf;
+
+#ifndef UNROLL_LESS
     while (len >= 32) {
         DOLIT32;
         len -= 32;
     }
+#endif
+
     while (len >= 4) {
         DOLIT4;
         len -= 4;
@@ -287,24 +331,31 @@ local unsigned long crc32_little(crc, buf, len)
 local unsigned long crc32_big(crc, buf, len)
     unsigned long crc;
     const unsigned char FAR *buf;
-    unsigned len;
+    z_size_t len;
 {
     register z_crc_t c;
     register const z_crc_t FAR *buf4;
 
     c = ZSWAP32((z_crc_t)crc);
     c = ~c;
+    // See comments in crc32_little
+#if 0
     while (len && ((ptrdiff_t)buf & 3)) {
         c = crc_table[4][(c >> 24) ^ *buf++] ^ (c << 8);
         len--;
     }
+#endif
 
     buf4 = (const z_crc_t FAR *)(const void FAR *)buf;
     buf4--;
+
+#ifndef UNROLL_LESS
     while (len >= 32) {
         DOBIG32;
         len -= 32;
     }
+#endif
+
     while (len >= 4) {
         DOBIG4;
         len -= 4;
@@ -422,4 +473,69 @@ uLong ZEXPORT crc32_combine64(crc1, crc2, len2)
     z_off64_t len2;
 {
     return crc32_combine_(crc1, crc2, len2);
+}
+
+ZLIB_INTERNAL void crc_reset(deflate_state *const s)
+{
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (x86_cpu_has_pclmulqdq) {
+        crc_fold_init(s->crc0);
+        s->strm->adler = 0;
+        return;
+    }
+#endif
+    s->strm->adler = crc32(0L, Z_NULL, 0);
+}
+
+ZLIB_INTERNAL void crc_finalize(deflate_state *const s)
+{
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (x86_cpu_has_pclmulqdq) {
+        s->strm->adler = crc_fold_512to32(s->crc0);
+    }
+#endif
+}
+
+ZLIB_INTERNAL void copy_with_crc(z_streamp strm, Bytef *dst, long size)
+{
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (x86_cpu_has_pclmulqdq) {
+        crc_fold_copy(strm->state->crc0, dst, strm->next_in, size);
+        return;
+    }
+#endif
+    zmemcpy(dst, strm->next_in, size);
+    strm->adler = crc32(strm->adler, dst, size);
+}
+
+void ZEXPORT crc32_init(z_crc32_state *z_const state)
+{
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (x86_cpu_has_pclmulqdq) {
+        crc_fold_init(state->crc0);
+        return;
+    }
+#endif
+    state->crc0[0] = crc32_z(0L, Z_NULL, 0);
+}
+
+void ZEXPORT crc32_update(z_crc32_state *z_const state, const Bytef *buf, z_size_t len)
+{
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (x86_cpu_has_pclmulqdq) {
+        crc_fold(state->crc0, buf, len);
+        return;
+    }
+#endif
+    state->crc0[0] = crc32_z(state->crc0[0], buf, len);
+}
+
+uLong ZEXPORT crc32_final(z_crc32_state *z_const state)
+{
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (x86_cpu_has_pclmulqdq) {
+        return crc_fold_512to32(state->crc0);
+    }
+#endif
+    return state->crc0[0];
 }
