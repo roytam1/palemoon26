@@ -834,10 +834,10 @@ static const CipherPref CipherPrefs[] = {
  { "security.ssl3.ecdhe_ecdsa_aes_128_gcm_sha256",
    TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, true },
    
- { "security.ssl3.ecdhe_rsa_camellia_128_gcm_sha256",
+/* { "security.ssl3.ecdhe_rsa_camellia_128_gcm_sha256",
    TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256, true },
  { "security.ssl3.ecdhe_ecdsa_camellia_128_gcm_sha256",
-   TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256, true },
+   TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256, true },*/
 
  { "security.ssl3.ecdhe_ecdsa_aes_256_sha",
    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, true },
@@ -1021,7 +1021,7 @@ nsNSSComponent::setEnabledTLSVersions(nsIPrefBranch * prefBranch)
 {
   // keep these values in sync with security-prefs.js and firefox.js
   static const int32_t PSM_DEFAULT_MIN_TLS_VERSION = 0;
-  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 1;
+  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 4;
 
   int32_t minVersion = PSM_DEFAULT_MIN_TLS_VERSION;
   int32_t maxVersion = PSM_DEFAULT_MAX_TLS_VERSION;
