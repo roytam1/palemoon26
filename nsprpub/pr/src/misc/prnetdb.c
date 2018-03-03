@@ -63,8 +63,7 @@ PRLock *_pr_dnsLock = NULL;
 
 #if defined(SOLARIS) || (defined(BSDI) && defined(_REENTRANT)) \
 	|| (defined(LINUX) && defined(_REENTRANT) \
-        && !(defined(__GLIBC__) && __GLIBC__ >= 2) \
-        && !defined(ANDROID))
+        && defined(__GLIBC__) && __GLIBC__ < 2)
 #define _PR_HAVE_GETPROTO_R
 #define _PR_HAVE_GETPROTO_R_POINTER
 #endif
@@ -1406,7 +1405,7 @@ PR_IMPLEMENT(PRStatus) PR_InitializeNetAddr(
     PRStatus rv = PR_SUCCESS;
     if (!_pr_initialized) _PR_ImplicitInitialization();
 
-	if (val != PR_IpAddrNull) memset(addr, 0, sizeof(addr->inet));
+	if (val != PR_IpAddrNull) memset(addr, 0, sizeof(*addr));
 	addr->inet.family = AF_INET;
 	addr->inet.port = htons(port);
 	switch (val)
@@ -1484,18 +1483,20 @@ PR_IsNetAddrType(const PRNetAddr *addr, PRNetAddrValue val)
         if (val == PR_IpAddrAny) {
 			if (_PR_IN6_IS_ADDR_UNSPECIFIED((PRIPv6Addr *)&addr->ipv6.ip)) {
             	return PR_TRUE;
-			} else if (_PR_IN6_IS_ADDR_V4MAPPED((PRIPv6Addr *)&addr->ipv6.ip)
-					&& _PR_IN6_V4MAPPED_TO_IPADDR((PRIPv6Addr *)&addr->ipv6.ip)
-							== htonl(INADDR_ANY)) {
-            	return PR_TRUE;
+			}
+            if (_PR_IN6_IS_ADDR_V4MAPPED((PRIPv6Addr *)&addr->ipv6.ip)
+                && _PR_IN6_V4MAPPED_TO_IPADDR((PRIPv6Addr *)&addr->ipv6.ip)
+                == htonl(INADDR_ANY)) {
+                return PR_TRUE;
 			}
         } else if (val == PR_IpAddrLoopback) {
             if (_PR_IN6_IS_ADDR_LOOPBACK((PRIPv6Addr *)&addr->ipv6.ip)) {
             	return PR_TRUE;
-			} else if (_PR_IN6_IS_ADDR_V4MAPPED((PRIPv6Addr *)&addr->ipv6.ip)
-					&& _PR_IN6_V4MAPPED_TO_IPADDR((PRIPv6Addr *)&addr->ipv6.ip)
-							== htonl(INADDR_LOOPBACK)) {
-            	return PR_TRUE;
+			}
+            if (_PR_IN6_IS_ADDR_V4MAPPED((PRIPv6Addr *)&addr->ipv6.ip)
+                && _PR_IN6_V4MAPPED_TO_IPADDR((PRIPv6Addr *)&addr->ipv6.ip)
+                == htonl(INADDR_LOOPBACK)) {
+                return PR_TRUE;
 			}
         } else if (val == PR_IpAddrV4Mapped
                 && _PR_IN6_IS_ADDR_V4MAPPED((PRIPv6Addr *)&addr->ipv6.ip)) {
@@ -1505,8 +1506,9 @@ PR_IsNetAddrType(const PRNetAddr *addr, PRNetAddrValue val)
         if (addr->raw.family == AF_INET) {
             if (val == PR_IpAddrAny && addr->inet.ip == htonl(INADDR_ANY)) {
                 return PR_TRUE;
-            } else if (val == PR_IpAddrLoopback
-                    && addr->inet.ip == htonl(INADDR_LOOPBACK)) {
+            }
+            if (val == PR_IpAddrLoopback
+                && addr->inet.ip == htonl(INADDR_LOOPBACK)) {
                 return PR_TRUE;
             }
         }
@@ -1778,18 +1780,12 @@ PR_IMPLEMENT(PRUint64) PR_ntohll(PRUint64 n)
 #ifdef IS_BIG_ENDIAN
     return n;
 #else
-    PRUint64 tmp;
     PRUint32 hi, lo;
-    LL_L2UI(lo, n);
-    LL_SHR(tmp, n, 32);
-    LL_L2UI(hi, tmp);
+    lo = (PRUint32)n;
+    hi = (PRUint32)(n >> 32);
     hi = PR_ntohl(hi);
     lo = PR_ntohl(lo);
-    LL_UI2L(n, lo);
-    LL_SHL(n, n, 32);
-    LL_UI2L(tmp, hi);
-    LL_ADD(n, n, tmp);
-    return n;
+    return ((PRUint64)lo << 32) + (PRUint64)hi;
 #endif
 }  /* ntohll */
 
@@ -1798,18 +1794,12 @@ PR_IMPLEMENT(PRUint64) PR_htonll(PRUint64 n)
 #ifdef IS_BIG_ENDIAN
     return n;
 #else
-    PRUint64 tmp;
     PRUint32 hi, lo;
-    LL_L2UI(lo, n);
-    LL_SHR(tmp, n, 32);
-    LL_L2UI(hi, tmp);
+    lo = (PRUint32)n;
+    hi = (PRUint32)(n >> 32);
     hi = htonl(hi);
     lo = htonl(lo);
-    LL_UI2L(n, lo);
-    LL_SHL(n, n, 32);
-    LL_UI2L(tmp, hi);
-    LL_ADD(n, n, tmp);
-    return n;
+    return ((PRUint64)lo << 32) + (PRUint64)hi;
 #endif
 }  /* htonll */
 
@@ -1958,14 +1948,6 @@ pr_GetAddrInfoByNameFB(const char  *hostname,
 {
     PRStatus rv;
     PRAddrInfoFB *ai;
-
-#ifdef _PR_INET6
-    if (af == PR_AF_INET6) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
-        return NULL;
-    }
-#endif
-
     /* fallback on PR_GetHostByName */
     ai = PR_NEW(PRAddrInfoFB);
     if (!ai) {
@@ -1988,11 +1970,7 @@ PR_IMPLEMENT(PRAddrInfo *) PR_GetAddrInfoByName(const char  *hostname,
                                                 PRIntn       flags)
 {
     /* restrict input to supported values */
-    if ((af != PR_AF_INET &&
-#ifdef _PR_INET6
-         af != PR_AF_INET6 &&
-#endif
-         af != PR_AF_UNSPEC) ||
+    if ((af != PR_AF_INET && af != PR_AF_UNSPEC) ||
         (flags & ~ PR_AI_NOCANONNAME) != PR_AI_ADDRCONFIG) {
         PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return NULL;
@@ -2045,11 +2023,7 @@ PR_IMPLEMENT(PRAddrInfo *) PR_GetAddrInfoByName(const char  *hostname,
             hints.ai_flags |= AI_ADDRCONFIG;
         }
 #endif
-        hints.ai_family = (af == PR_AF_INET) ? AF_INET
-#ifdef _PR_INET6
-                        : (af == PR_AF_INET6) ? AF_INET6
-#endif
-                        : AF_UNSPEC;
+        hints.ai_family = (af == PR_AF_INET) ? AF_INET : AF_UNSPEC;
 
         /*
          * it is important to select a socket type in the hints, otherwise we

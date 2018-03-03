@@ -194,7 +194,7 @@ static PRStatus
 GetInt(ScanfState *state, int code)
 {
     char buf[FMAX + 1], *p;
-    int ch;
+    int ch = 0;
     static const char digits[] = "0123456789abcdefABCDEF";
     PRBool seenDigit = PR_FALSE;
     int base;
@@ -304,7 +304,7 @@ static PRStatus
 GetFloat(ScanfState *state)
 {
     char buf[FMAX + 1], *p;
-    int ch;
+    int ch = 0;
     PRBool seenDigit = PR_FALSE;
 
     if (state->width == 0 || state->width > FMAX) {
@@ -409,7 +409,8 @@ Convert(ScanfState *state, const char *fmt)
                 ch = GET(state);
                 if (ch == EOF) {
                     return NULL;
-                } else if (state->assign) {
+                }
+                if (state->assign) {
                     *cArg++ = ch;
                 }
             }
@@ -602,10 +603,9 @@ StringGetChar(void *stream)
 
     if (*cPtr == '\0') {
         return EOF;
-    } else {
-        *((char **) stream) = cPtr + 1;
-        return (unsigned char) *cPtr;
     }
+    *((char **) stream) = cPtr + 1;
+    return (unsigned char) *cPtr;
 }
 
 static void

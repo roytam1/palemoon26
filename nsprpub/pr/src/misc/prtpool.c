@@ -281,8 +281,8 @@ PRThreadPool *tp = (PRThreadPool *) arg;
 int pollfd_cnt, pollfds_used;
 int rv;
 PRCList *qp, *nextqp;
-PRPollDesc *pollfds;
-PRJob **polljobs;
+PRPollDesc *pollfds = NULL;
+PRJob **polljobs = NULL;
 int poll_timeout;
 PRIntervalTime now;
 
@@ -862,16 +862,16 @@ PR_QueueJob_Connect(PRThreadPool *tpool, PRJobIoDesc *iod,
 	if ((rv == PR_FAILURE) && ((err = PR_GetError()) == PR_IN_PROGRESS_ERROR)){
 		/* connection pending */
 		return(queue_io_job(tpool, iod, fn, arg, joinable, JOB_IO_CONNECT));
-	} else {
-		/*
-		 * connection succeeded or failed; add to jobq right away
-		 */
-		if (rv == PR_FAILURE)
-			iod->error = err;
-		else
-			iod->error = 0;
-		return(PR_QueueJob(tpool, fn, arg, joinable));
 	}
+    /*
+     * connection succeeded or failed; add to jobq right away
+     */
+    if (rv == PR_FAILURE)
+      iod->error = err;
+    else
+      iod->error = 0;
+    return(PR_QueueJob(tpool, fn, arg, joinable));
+
 }
 
 /* queue a job, when a timer expires */
