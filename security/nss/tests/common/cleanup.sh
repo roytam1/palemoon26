@@ -27,15 +27,20 @@ if [ -z "${CLEANUP}" -o "${CLEANUP}" = "${SCRIPTNAME}" ]; then
     echo "NSS_AIA_OCSP=${NSS_AIA_OCSP}"
     echo "IOPR_HOSTADDR_LIST=${IOPR_HOSTADDR_LIST}"
     echo "PKITS_DATA=${PKITS_DATA}"
+    echo "NSS_DISABLE_HW_AES=${NSS_DISABLE_HW_AES}"
+    echo "NSS_DISABLE_PCLMUL=${NSS_DISABLE_PCLMUL}"
+    echo "NSS_DISABLE_AVX=${NSS_DISABLE_AVX}"
     echo
     echo "Tests summary:"
     echo "--------------"
     LINES_CNT=$(cat ${RESULTS} | grep ">Passed<" | wc -l | sed s/\ *//)
     echo "Passed:             ${LINES_CNT}"
-    LINES_CNT=$(cat ${RESULTS} | grep ">Failed<" | wc -l | sed s/\ *//)
-    echo "Failed:             ${LINES_CNT}"
-    LINES_CNT=$(cat ${RESULTS} | grep ">Failed Core<" | wc -l | sed s/\ *//)
-    echo "Failed with core:   ${LINES_CNT}"
+    FAILED_CNT=$(cat ${RESULTS} | grep ">Failed<" | wc -l | sed s/\ *//)
+    echo "Failed:             ${FAILED_CNT}"
+    CORE_CNT=$(cat ${RESULTS} | grep ">Failed Core<" | wc -l | sed s/\ *//)
+    echo "Failed with core:   ${CORE_CNT}"
+    ASAN_CNT=$(cat $LOGFILE | grep "SUMMARY: AddressSanitizer" | wc -l | sed s/\ *//)
+    echo "ASan failures:      ${ASAN_CNT}"
     LINES_CNT=$(cat ${RESULTS} | grep ">Unknown<" | wc -l | sed s/\ *//)
     echo "Unknown status:     ${LINES_CNT}"
     if [ ${LINES_CNT} -gt 0 ]; then
@@ -46,4 +51,8 @@ if [ -z "${CLEANUP}" -o "${CLEANUP}" = "${SCRIPTNAME}" ]; then
     html "END_OF_TEST<BR>"
     html "</BODY></HTML>" 
     rm -f ${TEMPFILES} 2>/dev/null
+    if [ ${FAILED_CNT} -gt 0 ] || [ ${ASAN_CNT} -gt 0 ]; then
+        exit 1
+    fi
+
 fi
