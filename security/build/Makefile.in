@@ -128,7 +128,7 @@ endif
 export MOZ_DEBUG_SYMBOLS
 
 DEFAULT_GMAKE_FLAGS =
-DEFAULT_GMAKE_FLAGS += CC="$(CC)"
+DEFAULT_GMAKE_FLAGS += CC='$(CC)'
 DEFAULT_GMAKE_FLAGS += SOURCE_MD_DIR=$(ABS_DIST)
 DEFAULT_GMAKE_FLAGS += SOURCE_MDHEADERS_DIR=$(NSPR_INCLUDE_DIR)
 DEFAULT_GMAKE_FLAGS += DIST=$(ABS_DIST)
@@ -137,12 +137,8 @@ DEFAULT_GMAKE_FLAGS += NSPR_LIB_DIR=$(NSPR_LIB_DIR)
 DEFAULT_GMAKE_FLAGS += MOZILLA_CLIENT=1
 DEFAULT_GMAKE_FLAGS += NO_MDUPDATE=1
 DEFAULT_GMAKE_FLAGS += NSS_ENABLE_ECC=1
-DEFAULT_GMAKE_FLAGS += NSINSTALL="$(NSINSTALL)"
-ifeq ($(OS_ARCH),WINNT)
-DEFAULT_GMAKE_FLAGS += INSTALL="$(NSINSTALL) -t"
-endif
 ifeq ($(OS_ARCH)_$(GNU_CC),WINNT_1)
-DEFAULT_GMAKE_FLAGS += OS_DLLFLAGS="-static-libgcc"
+DEFAULT_GMAKE_FLAGS += OS_DLLFLAGS='-static-libgcc'
 endif
 ifndef MOZ_NATIVE_SQLITE
 ifdef MOZ_FOLD_LIBS
@@ -157,12 +153,15 @@ DEFAULT_GMAKE_FLAGS += NSS_DISABLE_DBM=1
 endif
 ABS_topsrcdir   := $(shell cd $(topsrcdir); pwd)
 ifeq ($(HOST_OS_ARCH),WINNT)
-ifdef .PYMAKE
+#ifdef .PYMAKE
 ABS_topsrcdir   := $(shell cd $(topsrcdir); pwd -W)
-endif
+#endif
 endif
 # Hack to force NSS build system to use "normal" object directories
-DEFAULT_GMAKE_FLAGS += BUILD='$(MOZ_BUILD_ROOT)/security/$$(subst $(ABS_topsrcdir)/security/,,$$(CURDIR))'
+DEFAULT_GMAKE_FLAGS += ABS_topsrcdir='$(ABS_topsrcdir)'
+# ABS_topsrcdir can't be expanded here because msys path mangling likes to break
+# paths in that case.
+DEFAULT_GMAKE_FLAGS += BUILD='$(MOZ_BUILD_ROOT)/security/$$(subst $$(ABS_topsrcdir)/security/,,$$(CURDIR))'
 DEFAULT_GMAKE_FLAGS += BUILD_TREE='$$(BUILD)' OBJDIR='$$(BUILD)' DEPENDENCIES='$$(BUILD)/.deps' SINGLE_SHLIB_DIR='$$(BUILD)'
 DEFAULT_GMAKE_FLAGS += SOURCE_XP_DIR=$(ABS_DIST)
 ifndef MOZ_DEBUG
@@ -214,23 +213,23 @@ DEFAULT_GMAKE_FLAGS += CHECKLOC=
 ifdef CROSS_COMPILE
 
 DEFAULT_GMAKE_FLAGS += \
-	NATIVE_CC="$(HOST_CC)" \
-	CC="$(CC)" \
-	CCC="$(CXX)" \
-	LINK="$(LD)" \
-	AS="$(AS)" \
+	NATIVE_CC='$(HOST_CC)' \
+	CC='$(CC)' \
+	CCC='$(CXX)' \
+	LINK='$(LD)' \
+	AS='$(AS)' \
 	AR='$(AR) $(AR_FLAGS:$@=$$@)' \
-	RANLIB="$(RANLIB)" \
-	RC="$(RC) $(RCFLAGS)" \
-	OS_ARCH="$(OS_ARCH)" \
-	OS_TEST="$(OS_TEST)" \
-	CPU_ARCH="$(TARGET_CPU)" \
+	RANLIB='$(RANLIB)' \
+	RC='$(RC) $(RCFLAGS)' \
+	OS_ARCH='$(OS_ARCH)' \
+	OS_TEST='$(OS_TEST)' \
+	CPU_ARCH='$(TARGET_CPU)' \
 	$(NULL)
 
 # Android has pthreads integrated into -lc, so OS_PTHREAD is set to nothing
 ifeq ($(OS_TARGET), Android)
 DEFAULT_GMAKE_FLAGS += \
-	OS_RELEASE="2.6" \
+	OS_RELEASE='2.6' \
 	OS_PTHREAD= \
 	STANDARDS_CFLAGS="-std=gnu89" \
 	$(NULL)
@@ -241,8 +240,8 @@ endif
 
 ifdef WRAP_LDFLAGS
 DEFAULT_GMAKE_FLAGS += \
-	LDFLAGS="$(LDFLAGS) $(WRAP_LDFLAGS)" \
-	DSO_LDOPTS="$(DSO_LDOPTS) $(LDFLAGS) $(WRAP_LDFLAGS)" \
+	LDFLAGS='$(LDFLAGS) $(WRAP_LDFLAGS)' \
+	DSO_LDOPTS='$(DSO_LDOPTS) $(LDFLAGS) $(WRAP_LDFLAGS)' \
 	$(NULL)
 endif
 
@@ -255,8 +254,8 @@ ifdef MOZ_NO_WLZDEFS
 DEFAULT_GMAKE_FLAGS += ZDEFS_FLAG=
 endif
 ifdef MOZ_CFLAGS_NSS
-DEFAULT_GMAKE_FLAGS += XCFLAGS="$(CFLAGS)"
-DEFAULT_GMAKE_FLAGS += DARWIN_DYLIB_VERSIONS="-compatibility_version 1 -current_version 1 $(LDFLAGS)"
+DEFAULT_GMAKE_FLAGS += XCFLAGS='$(CFLAGS)'
+DEFAULT_GMAKE_FLAGS += DARWIN_DYLIB_VERSIONS='-compatibility_version 1 -current_version 1 $(LDFLAGS)'
 endif
 
 DEFAULT_GMAKE_FLAGS += NSS_NO_PKCS11_BYPASS=1
@@ -327,7 +326,7 @@ ifdef MOZ_FOLD_LIBS
 # TODO: The following can be replaced by something simpler when bug 844880
 # is fixed.
 # All static libraries required for nss, smime, ssl and nssutil.
-NSS_STATIC_LIBS := $(shell $(MAKE) --no-print-directory -f $(srcdir)/nss.mk DEPTH="$(DEPTH)" topsrcdir="$(topsrcdir)" srcdir="$(srcdir)" echo-variable-libs)
+NSS_STATIC_LIBS := $(shell $(MAKE) --no-print-directory -f $(srcdir)/nss.mk DEPTH='$(DEPTH)' topsrcdir='$(topsrcdir)' srcdir='$(srcdir)' echo-variable-libs)
 # Corresponding build directories
 NSS_STATIC_DIRS := $(foreach lib,$(NSS_STATIC_LIBS),$(patsubst %/,%,$(dir $(lib))))
 NSS_DIRS += $(NSS_STATIC_DIRS)
@@ -452,6 +451,16 @@ libs-nss/lib/freebl: $(DIST)/lib/$(IMPORT_PREFIX)nssutil3$(IMPORT_SUFFIX) $(NSPR
 $(addprefix libs-,$(NSS_STATIC_DIRS)): DEFAULT_GMAKE_FLAGS += SHARED_LIBRARY= IMPORT_LIBRARY=
 endif # MOZ_FOLD_LIBS
 
+ifeq ($(NSINSTALL_PY),$(NSINSTALL))
+DEFAULT_GMAKE_FLAGS += PYTHON='$(PYTHON)'
+DEFAULT_GMAKE_FLAGS += NSINSTALL_PY='$(call core_abspath,$(topsrcdir)/config/nsinstall.py)'
+DEFAULT_GMAKE_FLAGS += NSINSTALL='$$(PYTHON) $$(NSINSTALL_PY)'
+else
+DEFAULT_GMAKE_FLAGS += NSINSTALL='$(NSINSTALL)'
+endif
+ifeq ($(OS_ARCH),WINNT)
+DEFAULT_GMAKE_FLAGS += INSTALL='$$(NSINSTALL) -t'
+endif
 DEFAULT_GMAKE_FLAGS += $(EXTRA_GMAKE_FLAGS)
 
 $(addprefix libs-,$(NSS_DIRS)): libs-%:
