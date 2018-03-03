@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 pref("security.tls.version.min", 1);
-pref("security.tls.version.max", 3);
+pref("security.tls.version.max", 4);
 pref("security.enable_tls_session_tickets", true);
 pref("security.enable_md5_signatures", false);
 
@@ -32,9 +32,9 @@ pref("security.ssl3.dhe_rsa_camellia_256_sha", true);
 pref("security.ssl3.dhe_dss_aes_128_sha", true);
 pref("security.ssl3.dhe_dss_aes_256_sha", true);
 pref("security.ssl3.rsa_aes_128_sha", true);
-pref("security.ssl3.rsa_camellia_128_sha", true);
+//pref("security.ssl3.rsa_camellia_128_sha", true);
 pref("security.ssl3.rsa_aes_256_sha", true);
-pref("security.ssl3.rsa_camellia_256_sha", true);
+//pref("security.ssl3.rsa_camellia_256_sha", true);
 
 // Cipher suites disabled by default                   //Reason:
 pref("security.ssl3.ecdhe_rsa_des_ede3_sha", false);   //3DES
