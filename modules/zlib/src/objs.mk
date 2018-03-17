@@ -6,9 +6,7 @@ MODULES_ZLIB_SRC_LCSRCS = \
 		adler32.c \
 		compress.c \
 		crc32.c \
-		crc_folding.c \
 		deflate.c \
-		fill_window_sse.c \
 		gzclose.c \
 		gzlib.c \
 		gzread.c \
@@ -19,7 +17,6 @@ MODULES_ZLIB_SRC_LCSRCS = \
 		inftrees.c \
 		trees.c \
 		uncompr.c \
-		x86.c \
 		zutil.c \
 		$(NULL)
 
