@@ -277,6 +277,7 @@ class YarrPatternConstructor {
 public:
     YarrPatternConstructor(YarrPattern& pattern)
         : m_pattern(pattern)
+        , m_stackBase(nullptr)
         , m_characterClassConstructor(pattern.m_ignoreCase)
         , m_invertParentheticalAssertion(false)
     {
@@ -297,6 +298,22 @@ public:
         m_pattern.m_body = js_new<PatternDisjunction>();
         m_alternative = m_pattern.m_body->addNewAlternative();
         m_pattern.m_disjunctions.append(m_pattern.m_body);
+    }
+
+    void setStackBase(uint8_t *stackBase) {
+        m_stackBase = stackBase;
+    }
+
+    bool isOverRecursed() {
+        /*
+         * Bug 616491: attempt detection of over-recursion.
+         * "256KB should be enough stack for anyone."
+         */
+        uint8_t stackDummy_;
+        JS_ASSERT(m_stackBase != nullptr);
+        if (m_stackBase - &stackDummy_ > (1 << 18))
+            return true;
+        return false;
     }
     
     void assertionBOL()
@@ -569,6 +586,9 @@ public:
     ErrorCode setupAlternativeOffsets(PatternAlternative* alternative, unsigned currentCallFrameSize, unsigned initialInputPosition,
                                       unsigned *callFrameSizeOut)
     {
+        if (isOverRecursed())
+            return PatternTooLarge;
+
         alternative->m_hasFixedSize = true;
         Checked<unsigned> currentInputPosition = initialInputPosition;
 
@@ -661,6 +681,9 @@ public:
 
     ErrorCode setupDisjunctionOffsets(PatternDisjunction* disjunction, unsigned initialCallFrameSize, unsigned initialInputPosition, unsigned *maximumCallFrameSizeOut)
     {
+        if (isOverRecursed())
+            return PatternTooLarge;
+        
         if ((disjunction != m_pattern.m_body) && (disjunction->m_alternatives.size() > 1))
             initialCallFrameSize += YarrStackSpaceForBackTrackInfoAlternative;
 
@@ -836,6 +859,7 @@ public:
 
 private:
     YarrPattern& m_pattern;
+    uint8_t * m_stackBase;
     PatternAlternative* m_alternative;
     CharacterClassConstructor m_characterClassConstructor;
     bool m_invertCharacterClass;
@@ -845,6 +869,9 @@ private:
 ErrorCode YarrPattern::compile(const String& patternString)
 {
     YarrPatternConstructor constructor(*this);
+
+    uint8_t stackDummy_;
+    constructor.setStackBase(&stackDummy_);
 
     if (ErrorCode error = parse(constructor, patternString))
         return error;
