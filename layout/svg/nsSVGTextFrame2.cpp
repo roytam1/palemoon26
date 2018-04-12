@@ -3565,6 +3565,11 @@ nsSVGTextFrame2::ReflowSVG()
   mRect =
     nsLayoutUtils::RoundGfxRectToAppRect(r, presContext->AppUnitsPerCSSPixel());
 
+  // Due to rounding issues when we have a transform applied, we sometimes
+  // don't include an additional row of pixels.  For now, just inflate our
+  // covered region.
+  mRect.Inflate(presContext->AppUnitsPerDevPixel());
+
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
     // Make sure we have our filter property (if any) before calling
@@ -4998,8 +5003,7 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     }
   }
 
-  float textZoom = presContext->TextZoom();
-  double minSize = presContext->AppUnitsToFloatCSSPixels(min) / textZoom;
+  double minSize = presContext->AppUnitsToFloatCSSPixels(min);
 
   if (geometricPrecision) {
     // We want to ensure minSize is scaled to PRECISE_SIZE.
@@ -5007,7 +5011,7 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     return;
   }
 
-  double maxSize = presContext->AppUnitsToFloatCSSPixels(max) / textZoom;
+  double maxSize = presContext->AppUnitsToFloatCSSPixels(max);
 
   // The context scale is the ratio of the length of the transformed
   // diagonal vector (1,1) to the length of the untransformed diagonal

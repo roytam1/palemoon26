@@ -140,7 +140,6 @@ nsIFrame*
 NS_NewHTMLVideoFrame (nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 #include "nsSVGTextContainerFrame.h"
-#include "nsSVGTextFrame2.h"
 
 nsIFrame*
 NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
@@ -8938,8 +8937,7 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
       // our content
       nsIContent* content = fixed->GetContent();
       nsStyleContext* styleContext =
-        nsLayoutUtils::GetStyleFrame(content->GetPrimaryFrame())->
-          StyleContext();
+        nsLayoutUtils::GetStyleFrame(content)->StyleContext();
       FrameConstructionItemList items;
       AddFrameConstructionItemsInternal(state, content, canvasFrame,
                                         content->Tag(),

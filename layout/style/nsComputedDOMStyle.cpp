@@ -308,10 +308,9 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
   }
 
   if (!aPseudo && aStyleType == eAll) {
-    nsIFrame* frame = aElement->GetPrimaryFrame();
+    nsIFrame* frame = nsLayoutUtils::GetStyleFrame(aElement);
     if (frame) {
-      nsStyleContext* result =
-        nsLayoutUtils::GetStyleFrame(frame)->StyleContext();
+      nsStyleContext* result = frame->StyleContext();
       // Don't use the style context if it was influenced by
       // pseudo-elements, since then it's not the primary style
       // for this element.
@@ -3862,7 +3861,10 @@ nsComputedDOMStyle::GetLineHeightCoord(nscoord& aCoord)
   // font->mSize as the font size.  Adjust for that.  Also adjust for
   // the text zoom, if any.
   const nsStyleFont* font = StyleFont();
-  float fCoord = float(aCoord) / mPresShell->GetPresContext()->TextZoom();
+  float fCoord = float(aCoord);
+  if (font->mAllowZoom) {
+    fCoord /= mPresShell->GetPresContext()->TextZoom();
+  }
   if (font->mFont.size != font->mSize) {
     fCoord = fCoord * (float(font->mSize) / float(font->mFont.size));
   }
