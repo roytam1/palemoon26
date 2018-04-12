@@ -2724,7 +2724,7 @@ History::GetPlacesInfo(const JS::Value& aPlaceIdentifiers,
       nsCOMPtr<nsIURI> uri = GetJSValueAsURI(aCtx, placeIdentifier);
       if (!uri)
         return NS_ERROR_INVALID_ARG; // neither a guid, nor a uri.
-      *placesInfo.AppendElement(VisitData(uri));
+      placesInfo.AppendElement(VisitData(uri));
     }
   }
 
