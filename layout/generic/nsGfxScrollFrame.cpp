@@ -1894,13 +1894,11 @@ ClampAndAlignWithPixels(nscoord aDesired,
   // Use a bound if it is within the allowed range and closer to desired than
   // the nearest pixel-aligned value.
   if (aBoundUpper == destUpper &&
-      static_cast<decltype(Abs(desired))>(aBoundUpper - desired) <
-      Abs(desired - aligned))
+      ((aBoundUpper - desired) < Abs(desired - aligned) || aBoundUpper - desired < 0) )
     return aBoundUpper;
 
   if (aBoundLower == destLower &&
-      static_cast<decltype(Abs(desired))>(desired - aBoundLower) <
-      Abs(aligned - desired))
+      ((desired - aBoundLower) < Abs(aligned - desired) || desired - aBoundLower < 0) )
     return aBoundLower;
 
   // Accept the nearest pixel-aligned value if it is within the allowed range. 
@@ -2210,7 +2208,7 @@ ClipItemsExceptCaret(nsDisplayList* aList, nsDisplayListBuilder* aBuilder,
       // Don't clip the caret if it overflows vertically only, and by half
       // its height at most.  This is to avoid clipping it when the line-height
       // is small.
-      auto half = bounds.height / 2;
+      double half = bounds.height / 2;
       bounds.y += half;
       bounds.height -= half;
       isAffectedByClip = aClip.IsRectAffectedByClip(bounds);

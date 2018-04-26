@@ -260,7 +260,7 @@ typedef nsTArray<nsIFrame*> FrameTArray;
 /* static */ void
 nsTableFrame::DestroyPositionedTablePartArray(void* aPropertyValue)
 {
-  auto positionedObjs = static_cast<FrameTArray*>(aPropertyValue);
+  FrameTArray* positionedObjs = static_cast<FrameTArray*>(aPropertyValue);
   delete positionedObjs;
 }
 
@@ -290,7 +290,7 @@ nsTableFrame::RegisterPositionedTablePart(nsIFrame* aFrame)
 
   // Retrieve the positioned parts for this table.
   FrameProperties props = tableFrame->Properties();
-  auto positionedParts =
+  FrameTArray* positionedParts =
     static_cast<FrameTArray*>(props.Get(PositionedTablePartArray()));
 
   // Create the array if it doesn't exist yet.
@@ -318,7 +318,7 @@ nsTableFrame::UnregisterPositionedTablePart(nsIFrame* aFrame,
 
   // Retrieve the positioned parts for this table.
   FrameProperties props = tableFrame->Properties();
-  auto positionedParts =
+  FrameTArray* positionedParts =
     static_cast<FrameTArray*>(props.Get(PositionedTablePartArray()));
 
   // Remove the frame.
@@ -1881,7 +1881,7 @@ nsTableFrame::FixupPositionedTableParts(nsPresContext*           aPresContext,
                                         nsHTMLReflowMetrics&     aDesiredSize,
                                         const nsHTMLReflowState& aReflowState)
 {
-  auto positionedParts =
+  FrameTArray* positionedParts =
     static_cast<FrameTArray*>(Properties().Get(PositionedTablePartArray()));
   if (!positionedParts) {
     return;
