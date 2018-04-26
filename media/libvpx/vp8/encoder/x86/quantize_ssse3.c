@@ -8,6 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "./vp8_rtcd.h"
+
+#if HAVE_SSE3
+
 #include <tmmintrin.h> /* SSSE3 */
 
 #include "vp8/encoder/block.h"
@@ -112,3 +116,4 @@ void vp8_fast_quantize_b_ssse3(BLOCK *b, BLOCKD *d) {
 
   *d->eob = 0xFF & eob;
 }
+#endif

@@ -13,6 +13,8 @@
 // tmmintrin.h.
 #include "./vp9_rtcd.h"
 
+#if HAVE_SSSE3
+
 #include <tmmintrin.h>
 
 #include "vp9/common/x86/convolve.h"
@@ -599,3 +601,4 @@ FUN_CONV_1D(avg_vert, y_step_q4, filter_y, v, src - src_stride * 3, avg_,
 //                              int w, int h);
 FUN_CONV_2D(, ssse3);
 FUN_CONV_2D(avg_ , ssse3);
+#endif

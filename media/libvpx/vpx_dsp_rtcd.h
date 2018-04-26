@@ -16,7 +16,9 @@
 
 #elif defined(_WIN32)
 /* 32 bit Windows, MSVC. */
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && _MSC_VER <= 1400
+#include "vpx_dsp_rtcd_x86-win32-vs8.h"
+#elif defined(_MSC_VER)
 #include "vpx_dsp_rtcd_x86-win32-vs12.h"
 #else
 #include "vpx_dsp_rtcd_x86-win32-gcc.h"
