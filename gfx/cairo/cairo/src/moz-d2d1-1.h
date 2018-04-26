@@ -275,8 +275,8 @@ interface DX_DECLARE_INTERFACE("e8f7fe7a-191c-466d-ad95-975678bda998") ID2D1Devi
     // Push a layer on the device context.
     //
     STDMETHOD_(void, PushLayer)(
-        _In_ CONST D2D1_LAYER_PARAMETERS1 *layerParameters,
-        _In_opt_ ID2D1Layer *layer 
+        CONST D2D1_LAYER_PARAMETERS1 *layerParameters,
+        ID2D1Layer *layer
         ) PURE;
     
     using ID2D1RenderTarget::PushLayer;
@@ -343,7 +343,7 @@ interface DX_DECLARE_INTERFACE("e8f7fe7a-191c-466d-ad95-975678bda998") ID2D1Devi
     void
     PushLayer(
         CONST D2D1_LAYER_PARAMETERS1 &layerParameters,
-        _In_opt_ ID2D1Layer *layer 
+        ID2D1Layer *layer
         )  
     {
         PushLayer(&layerParameters, layer);
