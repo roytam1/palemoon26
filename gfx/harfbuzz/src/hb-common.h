@@ -43,6 +43,10 @@
 # endif /* !__cplusplus */
 #endif
 
+#if defined(_MSC_STDINT_H_)
+#define HB_DONT_DEFINE_STDINT
+#endif
+
 #if !defined (HB_DONT_DEFINE_STDINT)
 
 #if defined (_SVR4) || defined (SVR4) || defined (__OpenBSD__) || \

@@ -89,6 +89,9 @@ PIXMAN_BEGIN_DECLS
 /*
  * Standard integers
  */
+#if defined(_MSC_STDINT_H_)
+#define PIXMAN_DONT_DEFINE_STDINT
+#endif
 
 #if !defined (PIXMAN_DONT_DEFINE_STDINT)
 
