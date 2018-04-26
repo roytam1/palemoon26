@@ -388,7 +388,7 @@ nsUserFontSet::StartLoad(gfxMixedFontFamily *aFamily,
       new nsCORSListenerProxy(streamLoader, aProxy->mPrincipal, false);
     // Doesn't matter what data: URI handling we use here, since we
     // don't even use a CORS listener proxy for the data: case.
-    rv = listener->Init(channel, DataURIHandling::Disallow);
+    rv = listener->Init(channel, DataURIHandlingDisallow);
     if (NS_SUCCEEDED(rv)) {
       rv = channel->AsyncOpen(listener, nullptr);
     }
