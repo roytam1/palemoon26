@@ -21,6 +21,11 @@
 #include "prprf.h"
 #include <stdio.h>
 
+#if _MSC_VER <= 1400
+#define _interlockedbittestandreset _interlockedbittestandreset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#define _interlockedbittestandset _interlockedbittestandset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#endif
+
 #include <intrin.h>
 
 #if defined(PR_LOGGING)
