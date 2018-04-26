@@ -59,6 +59,16 @@ REDIST_OPENMP_FILES = \
   $(NULL)
 endif
 
+ifeq (1800,$(_MSC_VER))
+REDIST_FILES = \
+  msvcp120.dll \
+  msvcr120.dll \
+  $(NULL)
+REDIST_OPENMP_FILES = \
+  vcomp120.dll \
+  $(NULL)
+endif
+
 ifdef REDIST_FILES
 libs-preqs = \
   $(call mkdir_deps,$(FINAL_TARGET)) \
@@ -66,7 +76,9 @@ libs-preqs = \
 
 libs:: $(libs-preqs)
 	install --preserve-timestamps $(foreach f,$(REDIST_FILES),"$(WIN32_REDIST_DIR)"/$(f)) $(FINAL_TARGET)
+ifneq ($(REDIST_OPENMP_FILES),)
 	install --preserve-timestamps $(foreach f,$(REDIST_OPENMP_FILES),"$(WIN32_REDIST_OPENMP_DIR)"/$(f)) $(FINAL_TARGET)
+endif
 endif
 
 endif # ! MOZ_DEBUG
