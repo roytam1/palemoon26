@@ -6,7 +6,7 @@
 #if !defined(OpusParser_h_)
 #define OpusParser_h_
 
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 
 #include <opus/opus.h>
 #include "opus/opus_multistream.h"

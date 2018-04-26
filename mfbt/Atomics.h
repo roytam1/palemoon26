@@ -18,7 +18,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/TypeTraits.h"
 
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 
 /*
  * Our minimum deployment target on clang/OS X is OS X 10.6, whose SDK

@@ -6,7 +6,7 @@
 #if !defined(MPAPI_h_)
 #define MPAPI_h_
 
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 
 namespace MPAPI {
 

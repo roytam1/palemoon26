@@ -6,7 +6,7 @@
 #ifndef MOZILLA_IMAGELIB_ORIENTATION_H_
 #define MOZILLA_IMAGELIB_ORIENTATION_H_
 
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 #include "mozilla/TypedEnum.h"
 
 namespace mozilla {

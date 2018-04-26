@@ -6,7 +6,7 @@
 #ifndef MOZILLA_IMAGELIB_EXIF_H_
 #define MOZILLA_IMAGELIB_EXIF_H_
 
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 #include "mozilla/TypedEnum.h"
 #include "nsDebug.h"
 

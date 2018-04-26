@@ -8,7 +8,7 @@
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Endian.h"
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 
 #include "OpusParser.h"
 

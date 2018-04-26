@@ -14,7 +14,7 @@
  * optimizations.  Most users will not need to touch this file.
  */
 
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 
 /*
  * Maximum number of components (color channels) allowed in JPEG image.

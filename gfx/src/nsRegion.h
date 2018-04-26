@@ -7,7 +7,7 @@
 #define nsRegion_h__
 
 #include <stddef.h>                     // for size_t
-#include <stdint.h>                     // for uint32_t, uint64_t
+#include "mozilla/StandardInteger.h"
 #include <sys/types.h>                  // for int32_t
 #include "gfxCore.h"                    // for NS_GFX
 #include "nsCoord.h"                    // for nscoord

@@ -6,7 +6,7 @@
 #define GLTYPES_H_
 
 #include <stddef.h>
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 
 #ifndef GLAPIENTRY
 # ifdef WIN32
@@ -50,7 +50,7 @@ typedef intptr_t GLintptr;
 
 #endif /* #if !defined(__gltypes_h_) && !defined(__gl_h_) */
 
-#include <stdint.h>
+#include "mozilla/StandardInteger.h"
 
 // ARB_sync
 typedef struct __GLsync* GLsync;
