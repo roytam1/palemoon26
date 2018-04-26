@@ -1,6 +1,5 @@
-#include "precompiled.h"
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright (c) 2002-2012 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -10,7 +9,14 @@
 
 #include "libGLESv2/Program.h"
 #include "libGLESv2/ProgramBinary.h"
-#include "libGLESv2/ResourceManager.h"
+
+#include "common/debug.h"
+
+#include "libGLESv2/main.h"
+#include "libGLESv2/Shader.h"
+#include "libGLESv2/utilities.h"
+
+#include <string>
 
 namespace gl
 {
@@ -85,7 +91,7 @@ void InfoLog::appendSanitized(const char *message)
     }
     while (found != std::string::npos);
 
-    append("%s", msg.c_str());
+    append("%s\n", msg.c_str());
 }
 
 void InfoLog::append(const char *format, ...)
@@ -106,17 +112,15 @@ void InfoLog::append(const char *format, ...)
 
     if (!mInfoLog)
     {
-        mInfoLog = new char[infoLength + 2];
+        mInfoLog = new char[infoLength + 1];
         strcpy(mInfoLog, info);
-        strcpy(mInfoLog + infoLength, "\n");
     }
     else
     {
         size_t logLength = strlen(mInfoLog);
-        char *newLog = new char[logLength + infoLength + 2];
+        char *newLog = new char[logLength + infoLength + 1];
         strcpy(newLog, mInfoLog);
         strcpy(newLog + logLength, info);
-        strcpy(newLog + logLength + infoLength, "\n");
 
         delete[] mInfoLog;
         mInfoLog = newLog;
@@ -132,7 +136,7 @@ void InfoLog::reset()
     }
 }
 
-Program::Program(rx::Renderer *renderer, ResourceManager *manager, GLuint handle) : mResourceManager(manager), mHandle(handle)
+Program::Program(ResourceManager *manager, GLuint handle) : mResourceManager(manager), mHandle(handle)
 {
     mFragmentShader = NULL;
     mVertexShader = NULL;
@@ -140,7 +144,6 @@ Program::Program(rx::Renderer *renderer, ResourceManager *manager, GLuint handle
     mDeleteStatus = false;
     mLinked = false;
     mRefCount = 0;
-    mRenderer = renderer;
 }
 
 Program::~Program()
@@ -244,7 +247,7 @@ bool Program::link()
 
     mInfoLog.reset();
 
-    mProgramBinary.set(new ProgramBinary(mRenderer));
+    mProgramBinary.set(new ProgramBinary());
     mLinked = mProgramBinary->link(mInfoLog, mAttributeBindings, mFragmentShader, mVertexShader);
 
     return mLinked;
@@ -301,7 +304,7 @@ bool Program::setProgramBinary(const void *binary, GLsizei length)
 
     mInfoLog.reset();
 
-    mProgramBinary.set(new ProgramBinary(mRenderer));
+    mProgramBinary.set(new ProgramBinary());
     mLinked = mProgramBinary->load(mInfoLog, binary, length);
     if (!mLinked)
     {

@@ -1,4 +1,3 @@
-#include "precompiled.h"
 //
 // Copyright (c) 2002-2010 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
@@ -18,10 +17,9 @@
 
 namespace gl
 {
-ResourceManager::ResourceManager(rx::Renderer *renderer)
+ResourceManager::ResourceManager()
 {
     mRefCount = 1;
-    mRenderer = renderer;
 }
 
 ResourceManager::~ResourceManager()
@@ -82,11 +80,11 @@ GLuint ResourceManager::createShader(GLenum type)
 
     if (type == GL_VERTEX_SHADER)
     {
-        mShaderMap[handle] = new VertexShader(this, mRenderer, handle);
+        mShaderMap[handle] = new VertexShader(this, handle);
     }
     else if (type == GL_FRAGMENT_SHADER)
     {
-        mShaderMap[handle] = new FragmentShader(this, mRenderer, handle);
+        mShaderMap[handle] = new FragmentShader(this, handle);
     }
     else UNREACHABLE();
 
@@ -98,7 +96,7 @@ GLuint ResourceManager::createProgram()
 {
     GLuint handle = mProgramShaderHandleAllocator.allocate();
 
-    mProgramMap[handle] = new Program(mRenderer, this, handle);
+    mProgramMap[handle] = new Program(this, handle);
 
     return handle;
 }
@@ -278,7 +276,7 @@ void ResourceManager::checkBufferAllocation(unsigned int buffer)
 {
     if (buffer != 0 && !getBuffer(buffer))
     {
-        Buffer *bufferObject = new Buffer(mRenderer, buffer);
+        Buffer *bufferObject = new Buffer(buffer);
         mBufferMap[buffer] = bufferObject;
         bufferObject->addRef();
     }
@@ -292,11 +290,11 @@ void ResourceManager::checkTextureAllocation(GLuint texture, TextureType type)
 
         if (type == TEXTURE_2D)
         {
-            textureObject = new Texture2D(mRenderer, texture);
+            textureObject = new Texture2D(texture);
         }
         else if (type == TEXTURE_CUBE)
         {
-            textureObject = new TextureCubeMap(mRenderer, texture);
+            textureObject = new TextureCubeMap(texture);
         }
         else
         {
@@ -313,7 +311,7 @@ void ResourceManager::checkRenderbufferAllocation(GLuint renderbuffer)
 {
     if (renderbuffer != 0 && !getRenderbuffer(renderbuffer))
     {
-        Renderbuffer *renderbufferObject = new Renderbuffer(mRenderer, renderbuffer, new Colorbuffer(mRenderer, 0, 0, GL_RGBA4, 0));
+        Renderbuffer *renderbufferObject = new Renderbuffer(renderbuffer, new Colorbuffer(0, 0, GL_RGBA4, 0));
         mRenderbufferMap[renderbuffer] = renderbufferObject;
         renderbufferObject->addRef();
     }

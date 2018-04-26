@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright (c) 2002-2010 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -9,19 +9,17 @@
 #ifndef LIBGLESV2_MAIN_H_
 #define LIBGLESV2_MAIN_H_
 
-#include "common/debug.h"
-#include "common/system.h"
+#define GL_APICALL
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
-namespace egl
-{
-class Display;
-class Surface;
-}
+#include "common/debug.h"
+#include "libEGL/Display.h"
+
+#include "libGLESv2/Context.h"
 
 namespace gl
 {
-class Context;
-    
 struct Current
 {
     Context *context;
@@ -34,6 +32,11 @@ Context *getContext();
 Context *getNonLostContext();
 egl::Display *getDisplay();
 
+IDirect3DDevice9 *getDevice();
+
+bool checkDeviceLost(HRESULT errorCode);
+}
+
 void error(GLenum errorCode);
 
 template<class T>
@@ -42,27 +45,6 @@ const T &error(GLenum errorCode, const T &returnValue)
     error(errorCode);
 
     return returnValue;
-}
-
-}
-
-namespace rx
-{
-class Renderer;
-}
-
-extern "C"
-{
-// Exported functions for use by EGL
-gl::Context *glCreateContext(const gl::Context *shareContext, rx::Renderer *renderer, bool notifyResets, bool robustAccess);
-void glDestroyContext(gl::Context *context);
-void glMakeCurrent(gl::Context *context, egl::Display *display, egl::Surface *surface);
-gl::Context *glGetCurrentContext();
-rx::Renderer *glCreateRenderer(egl::Display *display, HDC hDc, EGLNativeDisplayType displayId);
-void glDestroyRenderer(rx::Renderer *renderer);
-
-__eglMustCastToProperFunctionPointerType __stdcall glGetProcAddress(const char *procname);
-bool __stdcall glBindTexImage(egl::Surface *surface);
 }
 
 #endif   // LIBGLESV2_MAIN_H_

@@ -7,6 +7,10 @@
 // debug.cpp: Debugging utilities.
 
 #include "common/debug.h"
+
+#include <stdio.h>
+#include <stdarg.h>
+
 #include "common/system.h"
 #include <d3d9.h>
 

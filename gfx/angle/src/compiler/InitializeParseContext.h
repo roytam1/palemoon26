@@ -8,10 +8,19 @@
 #define __INITIALIZE_PARSE_CONTEXT_INCLUDED_
 
 bool InitializeParseContextIndex();
-void FreeParseContextIndex();
+bool FreeParseContextIndex();
+
+bool InitializeGlobalParseContext();
+bool FreeParseContext();
 
 struct TParseContext;
-extern void SetGlobalParseContext(TParseContext* context);
-extern TParseContext* GetGlobalParseContext();
+typedef TParseContext* TParseContextPointer;
+extern TParseContextPointer& GetGlobalParseContext();
+#define GlobalParseContext GetGlobalParseContext()
+
+typedef struct TThreadParseContextRec
+{
+    TParseContext *lpGlobalParseContext;
+} TThreadParseContext;
 
 #endif // __INITIALIZE_PARSE_CONTEXT_INCLUDED_

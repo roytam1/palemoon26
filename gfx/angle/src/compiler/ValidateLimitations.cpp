@@ -435,7 +435,7 @@ bool ValidateLimitations::validateFunctionCall(TIntermAggregate* node)
         return true;
 
     bool valid = true;
-    TSymbolTable& symbolTable = GetGlobalParseContext()->symbolTable;
+    TSymbolTable& symbolTable = GlobalParseContext->symbolTable;
     TSymbol* symbol = symbolTable.find(node->getName());
     ASSERT(symbol && symbol->isFunction());
     TFunction* function = static_cast<TFunction*>(symbol);

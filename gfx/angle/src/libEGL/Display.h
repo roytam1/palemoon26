@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright (c) 2002-2012 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -12,21 +12,33 @@
 #define LIBEGL_DISPLAY_H_
 
 #include "common/system.h"
+#include <d3d9.h>
+#include <d3dcompiler.h>
 
 #include <set>
 #include <vector>
 
-#include "libEGL/Config.h"
+#include "libGLESv2/Context.h"
 
-namespace gl
+#include "libEGL/Config.h"
+#include "libEGL/ShaderCache.h"
+#include "libEGL/Surface.h"
+
+const int versionWindowsVista = MAKEWORD(0x00, 0x06);
+const int versionWindows7 = MAKEWORD(0x01, 0x06);
+
+// Return the version of the operating system in a format suitable for ordering
+// comparison.
+inline int getComparableOSVersion()
 {
-class Context;
+    DWORD version = GetVersion();
+    int majorVersion = LOBYTE(LOWORD(version));
+    int minorVersion = HIBYTE(LOWORD(version));
+    return MAKEWORD(minorVersion, majorVersion);
 }
 
 namespace egl
 {
-class Surface;
-
 class Display
 {
   public:
@@ -34,6 +46,9 @@ class Display
 
     bool initialize();
     void terminate();
+
+    virtual void startScene();
+    virtual void endScene();
 
     static egl::Display *getDisplay(EGLNativeDisplayType displayId);
 
@@ -53,26 +68,83 @@ class Display
     bool isValidSurface(egl::Surface *surface);
     bool hasExistingWindowSurface(HWND window);
 
-    rx::Renderer *getRenderer() { return mRenderer; };
+    EGLint getMinSwapInterval();
+    EGLint getMaxSwapInterval();
 
-    // exported methods must be virtual
+    virtual IDirect3DDevice9 *getDevice();
+    virtual D3DCAPS9 getDeviceCaps();
+    virtual D3DADAPTER_IDENTIFIER9 *getAdapterIdentifier();
+    virtual bool testDeviceLost();
+    virtual bool testDeviceResettable();
+    virtual void sync(bool block);
+    virtual IDirect3DQuery9* allocateEventQuery();
+    virtual void freeEventQuery(IDirect3DQuery9* query);
+    virtual void getMultiSampleSupport(D3DFORMAT format, bool *multiSampleArray);
+    virtual bool getDXT1TextureSupport();
+    virtual bool getDXT3TextureSupport();
+    virtual bool getDXT5TextureSupport();
+    virtual bool getEventQuerySupport();
+    virtual bool getFloat32TextureSupport(bool *filtering, bool *renderable);
+    virtual bool getFloat16TextureSupport(bool *filtering, bool *renderable);
+    virtual bool getLuminanceTextureSupport();
+    virtual bool getLuminanceAlphaTextureSupport();
+    virtual bool getVertexTextureSupport() const;
+    virtual bool getNonPower2TextureSupport() const;
+    virtual bool getDepthTextureSupport() const;
+    virtual bool getOcclusionQuerySupport() const;
+    virtual bool getInstancingSupport() const;
+    virtual float getTextureFilterAnisotropySupport() const;
+    virtual D3DPOOL getBufferPool(DWORD usage) const;
+    virtual D3DPOOL getTexturePool(DWORD usage) const;
+
     virtual void notifyDeviceLost();
-    virtual void recreateSwapChains();
+    bool isDeviceLost();
 
+    bool isD3d9ExDevice() const { return mD3d9Ex != NULL; }
     const char *getExtensionString() const;
-    const char *getVendorString() const;
+    bool shareHandleSupported() const;
+
+    virtual IDirect3DVertexShader9 *createVertexShader(const DWORD *function, size_t length);
+    virtual IDirect3DPixelShader9 *createPixelShader(const DWORD *function, size_t length);
+
+    virtual HRESULT compileShaderSource(const char* hlsl, const char* sourceName, const char* profile, DWORD flags, ID3DBlob** binary, ID3DBlob** errorMessage);
 
   private:
     DISALLOW_COPY_AND_ASSIGN(Display);
 
-    Display(EGLNativeDisplayType displayId, HDC deviceContext);
+    Display(EGLNativeDisplayType displayId, HDC deviceContext, bool software);
+
+    D3DPRESENT_PARAMETERS getDefaultPresentParameters();
 
     bool restoreLostDevice();
 
     EGLNativeDisplayType mDisplayId;
     const HDC mDc;
 
+    HMODULE mD3d9Module;
+    
+    UINT mAdapter;
+    D3DDEVTYPE mDeviceType;
+    IDirect3D9 *mD3d9;  // Always valid after successful initialization.
+    IDirect3D9Ex *mD3d9Ex;  // Might be null if D3D9Ex is not supported.
+    IDirect3DDevice9 *mDevice;
+    IDirect3DDevice9Ex *mDeviceEx;  // Might be null if D3D9Ex is not supported.
+
+    // A pool of event queries that are currently unused.
+    std::vector<IDirect3DQuery9*> mEventQueryPool;
+
+    VertexShaderCache mVertexShaderCache;
+    PixelShaderCache mPixelShaderCache;
+
+    D3DCAPS9 mDeviceCaps;
+    D3DADAPTER_IDENTIFIER9 mAdapterIdentifier;
+    HWND mDeviceWindow;
+
+    bool mSceneStarted;
+    EGLint mMaxSwapInterval;
+    EGLint mMinSwapInterval;
     bool mSoftwareDevice;
+    bool mSupportsNonPower2Textures;
     
     typedef std::set<Surface*> SurfaceSet;
     SurfaceSet mSurfaceSet;
@@ -81,13 +153,29 @@ class Display
 
     typedef std::set<gl::Context*> ContextSet;
     ContextSet mContextSet;
+    bool mDeviceLost;
 
-    rx::Renderer *mRenderer;
+    bool createDevice();
+    void initializeDevice();
+    bool resetDevice();
 
     void initExtensionString();
-    void initVendorString();
     std::string mExtensionString;
-    std::string mVendorString;
+
+    typedef HRESULT (WINAPI *D3DCompileFunc)(LPCVOID pSrcData,
+                                             SIZE_T SrcDataSize,
+                                             LPCSTR pSourceName,
+                                             CONST D3D_SHADER_MACRO* pDefines,
+                                             ID3DInclude* pInclude,
+                                             LPCSTR pEntrypoint,
+                                             LPCSTR pTarget,
+                                             UINT Flags1,
+                                             UINT Flags2,
+                                             ID3DBlob** ppCode,
+                                             ID3DBlob** ppErrorMsgs);
+
+    HMODULE mD3dCompilerModule;
+    D3DCompileFunc mD3DCompileFunc;
 };
 }
 

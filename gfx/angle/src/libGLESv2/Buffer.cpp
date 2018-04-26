@@ -1,6 +1,5 @@
-#include "precompiled.h"
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright (c) 2002-2010 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -11,20 +10,19 @@
 
 #include "libGLESv2/Buffer.h"
 
-#include "libGLESv2/renderer/VertexBuffer.h"
-#include "libGLESv2/renderer/IndexBuffer.h"
-#include "libGLESv2/renderer/BufferStorage.h"
-#include "libGLESv2/renderer/Renderer.h"
+#include "libGLESv2/main.h"
+#include "libGLESv2/VertexDataManager.h"
+#include "libGLESv2/IndexDataManager.h"
 
 namespace gl
 {
 
-Buffer::Buffer(rx::Renderer *renderer, GLuint id) : RefCountObject(id)
+Buffer::Buffer(GLuint id) : RefCountObject(id)
 {
-    mRenderer = renderer;
+    mContents = NULL;
+    mSize = 0;
     mUsage = GL_DYNAMIC_DRAW;
 
-    mBufferStorage = renderer->createBufferStorage();
     mStaticVertexBuffer = NULL;
     mStaticIndexBuffer = NULL;
     mUnmodifiedDataUse = 0;
@@ -32,34 +30,47 @@ Buffer::Buffer(rx::Renderer *renderer, GLuint id) : RefCountObject(id)
 
 Buffer::~Buffer()
 {
-    delete mBufferStorage;
+    delete[] mContents;
     delete mStaticVertexBuffer;
     delete mStaticIndexBuffer;
 }
 
 void Buffer::bufferData(const void *data, GLsizeiptr size, GLenum usage)
 {
-    mBufferStorage->clear();
-    mIndexRangeCache.clear();
-    mBufferStorage->setData(data, size, 0);
+    if (size == 0)
+    {
+        delete[] mContents;
+        mContents = NULL;
+    }
+    else if (size != mSize)
+    {
+        delete[] mContents;
+        mContents = new GLubyte[size];
+        memset(mContents, 0, size);
+    }
 
+    if (data != NULL && size > 0)
+    {
+        memcpy(mContents, data, size);
+    }
+
+    mSize = size;
     mUsage = usage;
 
     invalidateStaticData();
 
     if (usage == GL_STATIC_DRAW)
     {
-        mStaticVertexBuffer = new rx::StaticVertexBufferInterface(mRenderer);
-        mStaticIndexBuffer = new rx::StaticIndexBufferInterface(mRenderer);
+        mStaticVertexBuffer = new StaticVertexBuffer(getDevice());
+        mStaticIndexBuffer = new StaticIndexBuffer(getDevice());
     }
 }
 
 void Buffer::bufferSubData(const void *data, GLsizeiptr size, GLintptr offset)
 {
-    mBufferStorage->setData(data, size, offset);
-    mIndexRangeCache.invalidateRange(offset, size);
-
-    if ((mStaticVertexBuffer && mStaticVertexBuffer->getBufferSize() != 0) || (mStaticIndexBuffer && mStaticIndexBuffer->getBufferSize() != 0))
+    memcpy(mContents + offset, data, size);
+    
+    if ((mStaticVertexBuffer && mStaticVertexBuffer->size() != 0) || (mStaticIndexBuffer && mStaticIndexBuffer->size() != 0))
     {
         invalidateStaticData();
     }
@@ -67,27 +78,12 @@ void Buffer::bufferSubData(const void *data, GLsizeiptr size, GLintptr offset)
     mUnmodifiedDataUse = 0;
 }
 
-rx::BufferStorage *Buffer::getStorage() const
-{
-    return mBufferStorage;
-}
-
-unsigned int Buffer::size()
-{
-    return mBufferStorage->getSize();
-}
-
-GLenum Buffer::usage() const
-{
-    return mUsage;
-}
-
-rx::StaticVertexBufferInterface *Buffer::getStaticVertexBuffer()
+StaticVertexBuffer *Buffer::getStaticVertexBuffer()
 {
     return mStaticVertexBuffer;
 }
 
-rx::StaticIndexBufferInterface *Buffer::getStaticIndexBuffer()
+StaticIndexBuffer *Buffer::getStaticIndexBuffer()
 {
     return mStaticIndexBuffer;
 }
@@ -110,17 +106,12 @@ void Buffer::promoteStaticUsage(int dataSize)
     {
         mUnmodifiedDataUse += dataSize;
 
-        if (mUnmodifiedDataUse > 3 * mBufferStorage->getSize())
+        if (mUnmodifiedDataUse > 3 * mSize)
         {
-            mStaticVertexBuffer = new rx::StaticVertexBufferInterface(mRenderer);
-            mStaticIndexBuffer = new rx::StaticIndexBufferInterface(mRenderer);
+            mStaticVertexBuffer = new StaticVertexBuffer(getDevice());
+            mStaticIndexBuffer = new StaticIndexBuffer(getDevice());
         }
     }
-}
-
-rx::IndexRangeCache *Buffer::getIndexRangeCache()
-{
-    return &mIndexRangeCache;
 }
 
 }

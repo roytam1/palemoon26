@@ -1,6 +1,5 @@
-#include "precompiled.h"
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright (c) 2002-2012 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -11,19 +10,18 @@
 
 #include "libGLESv2/Shader.h"
 
+#include <string>
+
 #include "GLSLANG/ShaderLang.h"
+#include "libGLESv2/main.h"
 #include "libGLESv2/utilities.h"
-#include "libGLESv2/renderer/Renderer.h"
-#include "libGLESv2/Constants.h"
-#include "libGLESv2/ResourceManager.h"
 
 namespace gl
 {
 void *Shader::mFragmentCompiler = NULL;
 void *Shader::mVertexCompiler = NULL;
 
-Shader::Shader(ResourceManager *manager, const rx::Renderer *renderer, GLuint handle)
-    : mHandle(handle), mRenderer(renderer), mResourceManager(manager)
+Shader::Shader(ResourceManager *manager, GLuint handle) : mHandle(handle), mResourceManager(manager)
 {
     mSource = NULL;
     mHlsl = NULL;
@@ -176,11 +174,6 @@ void Shader::getTranslatedSource(GLsizei bufSize, GLsizei *length, char *buffer)
     getSourceImpl(mHlsl, bufSize, length, buffer);
 }
 
-const sh::ActiveUniforms &Shader::getUniforms()
-{
-    return mActiveUniforms;
-}
-
 bool Shader::isCompiled()
 {
     return mHlsl != NULL;
@@ -230,27 +223,24 @@ void Shader::initializeCompiler()
 
         if (result)
         {
-            ShShaderOutput hlslVersion = (mRenderer->getMajorShaderModel() >= 4) ? SH_HLSL11_OUTPUT : SH_HLSL9_OUTPUT;
-
             ShBuiltInResources resources;
             ShInitBuiltInResources(&resources);
+            Context *context = getContext();
 
             resources.MaxVertexAttribs = MAX_VERTEX_ATTRIBS;
-            resources.MaxVertexUniformVectors = mRenderer->getMaxVertexUniformVectors();
-            resources.MaxVaryingVectors = mRenderer->getMaxVaryingVectors();
-            resources.MaxVertexTextureImageUnits = mRenderer->getMaxVertexTextureImageUnits();
-            resources.MaxCombinedTextureImageUnits = mRenderer->getMaxCombinedTextureImageUnits();
+            resources.MaxVertexUniformVectors = MAX_VERTEX_UNIFORM_VECTORS;
+            resources.MaxVaryingVectors = context->getMaximumVaryingVectors();
+            resources.MaxVertexTextureImageUnits = context->getMaximumVertexTextureImageUnits();
+            resources.MaxCombinedTextureImageUnits = context->getMaximumCombinedTextureImageUnits();
             resources.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
-            resources.MaxFragmentUniformVectors = mRenderer->getMaxFragmentUniformVectors();
-            resources.MaxDrawBuffers = mRenderer->getMaxRenderTargets();
-            resources.OES_standard_derivatives = mRenderer->getDerivativeInstructionSupport();
-            resources.EXT_draw_buffers = mRenderer->getMaxRenderTargets() > 1;
-            // resources.OES_EGL_image_external = mRenderer->getShareHandleSupport() ? 1 : 0; // TODO: commented out until the extension is actually supported.
+            resources.MaxFragmentUniformVectors = context->getMaximumFragmentUniformVectors();
+            resources.MaxDrawBuffers = MAX_DRAW_BUFFERS;
+            resources.OES_standard_derivatives = context->supportsDerivativeInstructions() ? 1 : 0;
+            // resources.OES_EGL_image_external = getDisplay()->isD3d9ExDevice() ? 1 : 0; // TODO: commented out until the extension is actually supported.
             resources.FragmentPrecisionHigh = 1;   // Shader Model 2+ always supports FP24 (s16e7) which corresponds to highp
-            resources.EXT_frag_depth = 1; // Shader Model 2+ always supports explicit depth output
 
-            mFragmentCompiler = ShConstructCompiler(SH_FRAGMENT_SHADER, SH_GLES2_SPEC, hlslVersion, &resources);
-            mVertexCompiler = ShConstructCompiler(SH_VERTEX_SHADER, SH_GLES2_SPEC, hlslVersion, &resources);
+            mFragmentCompiler = ShConstructCompiler(SH_FRAGMENT_SHADER, SH_GLES2_SPEC, SH_HLSL_OUTPUT, &resources);
+            mVertexCompiler = ShConstructCompiler(SH_VERTEX_SHADER, SH_GLES2_SPEC, SH_HLSL_OUTPUT, &resources);
         }
     }
 }
@@ -298,24 +288,10 @@ void Shader::parseVaryings()
             input = strstr(input, ";") + 2;
         }
 
-        mUsesMultipleRenderTargets = strstr(mHlsl, "GL_USES_MRT") != NULL;
-        mUsesFragColor = strstr(mHlsl, "GL_USES_FRAG_COLOR") != NULL;
-        mUsesFragData = strstr(mHlsl, "GL_USES_FRAG_DATA") != NULL;
         mUsesFragCoord = strstr(mHlsl, "GL_USES_FRAG_COORD") != NULL;
         mUsesFrontFacing = strstr(mHlsl, "GL_USES_FRONT_FACING") != NULL;
         mUsesPointSize = strstr(mHlsl, "GL_USES_POINT_SIZE") != NULL;
         mUsesPointCoord = strstr(mHlsl, "GL_USES_POINT_COORD") != NULL;
-        mUsesDepthRange = strstr(mHlsl, "GL_USES_DEPTH_RANGE") != NULL;
-        mUsesFragDepth = strstr(mHlsl, "GL_USES_FRAG_DEPTH") != NULL;
-    }
-}
-
-void Shader::resetVaryingsRegisterAssignment()
-{
-    for (VaryingList::iterator var = mVaryings.begin(); var != mVaryings.end(); var++)
-    {
-        var->reg = -1;
-        var->col = -1;
     }
 }
 
@@ -331,17 +307,10 @@ void Shader::uncompile()
     // set by parseVaryings
     mVaryings.clear();
 
-    mUsesMultipleRenderTargets = false;
-    mUsesFragColor = false;
-    mUsesFragData = false;
     mUsesFragCoord = false;
     mUsesFrontFacing = false;
     mUsesPointSize = false;
     mUsesPointCoord = false;
-    mUsesDepthRange = false;
-    mUsesFragDepth = false;
-
-    mActiveUniforms.clear();
 }
 
 void Shader::compileToHLSL(void *compiler)
@@ -387,10 +356,6 @@ void Shader::compileToHLSL(void *compiler)
         ShGetInfo(compiler, SH_OBJECT_CODE_LENGTH, &objCodeLen);
         mHlsl = new char[objCodeLen];
         ShGetObjectCode(compiler, mHlsl);
-
-        void *activeUniforms;
-        ShGetInfoPointer(compiler, SH_ACTIVE_UNIFORMS_ARRAY, &activeUniforms);
-        mActiveUniforms = *(sh::ActiveUniforms*)activeUniforms;
     }
     else
     {
@@ -521,8 +486,7 @@ bool Shader::compareVarying(const Varying &x, const Varying &y)
     return false;
 }
 
-VertexShader::VertexShader(ResourceManager *manager, const rx::Renderer *renderer, GLuint handle)
-    : Shader(manager, renderer, handle)
+VertexShader::VertexShader(ResourceManager *manager, GLuint handle) : Shader(manager, handle)
 {
 }
 
@@ -597,8 +561,7 @@ void VertexShader::parseAttributes()
     }
 }
 
-FragmentShader::FragmentShader(ResourceManager *manager, const rx::Renderer *renderer, GLuint handle)
-    : Shader(manager, renderer, handle)
+FragmentShader::FragmentShader(ResourceManager *manager, GLuint handle) : Shader(manager, handle)
 {
 }
 

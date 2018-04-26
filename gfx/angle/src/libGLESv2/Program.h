@@ -13,22 +13,14 @@
 #include <string>
 #include <set>
 
-#include "common/angleutils.h"
-#include "common/RefCountObject.h"
-#include "libGLESv2/Constants.h"
-
-namespace rx
-{
-class Renderer;
-}
+#include "libGLESv2/Shader.h"
+#include "libGLESv2/Context.h"
 
 namespace gl
 {
 class ResourceManager;
 class FragmentShader;
 class VertexShader;
-class ProgramBinary;
-class Shader;
 
 extern const char * const g_fakepath;
 
@@ -65,7 +57,7 @@ class InfoLog
 class Program
 {
   public:
-    Program(rx::Renderer *renderer, ResourceManager *manager, GLuint handle);
+    Program(ResourceManager *manager, GLuint handle);
 
     ~Program();
 
@@ -120,7 +112,6 @@ class Program
     unsigned int mRefCount;
 
     ResourceManager *mResourceManager;
-    rx::Renderer *mRenderer;
     const GLuint mHandle;
 
     InfoLog mInfoLog;

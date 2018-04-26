@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright (c) 2002-2010 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -9,12 +9,15 @@
 #ifndef LIBGLESV2_FENCE_H_
 #define LIBGLESV2_FENCE_H_
 
+#define GL_APICALL
+#include <GLES2/gl2.h>
+#include <d3d9.h>
+
 #include "common/angleutils.h"
 
-namespace rx
+namespace egl
 {
-class Renderer;
-class FenceImpl;
+class Display;
 }
 
 namespace gl
@@ -23,7 +26,7 @@ namespace gl
 class Fence
 {
   public:
-    explicit Fence(rx::Renderer *renderer);
+    explicit Fence(egl::Display* display);
     virtual ~Fence();
 
     GLboolean isFence();
@@ -35,7 +38,10 @@ class Fence
   private:
     DISALLOW_COPY_AND_ASSIGN(Fence);
 
-    rx::FenceImpl *mFence;
+    egl::Display* mDisplay;
+    IDirect3DQuery9* mQuery;
+    GLenum mCondition;
+    GLboolean mStatus;
 };
 
 }

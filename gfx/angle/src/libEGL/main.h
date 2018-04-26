@@ -38,6 +38,7 @@ EGLSurface getCurrentDrawSurface();
 
 void setCurrentReadSurface(EGLSurface surface);
 EGLSurface getCurrentReadSurface();
+}
 
 void error(EGLint errorCode);
 
@@ -55,8 +56,6 @@ const T &success(const T &returnValue)
     egl::setCurrentError(EGL_SUCCESS);
 
     return returnValue;
-}
-
 }
 
 #endif  // LIBEGL_MAIN_H_

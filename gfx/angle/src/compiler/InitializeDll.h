@@ -7,7 +7,10 @@
 #define __INITIALIZEDLL_H
 
 bool InitProcess();
-void DetachProcess();
+bool DetachProcess();
+
+bool InitThread();
+bool DetachThread();
 
 #endif // __INITIALIZEDLL_H
 

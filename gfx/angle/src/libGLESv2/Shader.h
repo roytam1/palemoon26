@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright (c) 2002-2012 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -18,18 +18,10 @@
 #include <list>
 #include <vector>
 
-#include "compiler/CompilerUniform.h"
-#include "common/angleutils.h"
-
-namespace rx
-{
-class Renderer;
-}
+#include "libGLESv2/ResourceManager.h"
 
 namespace gl
 {
-class ResourceManager;
-
 struct Varying
 {
     Varying(GLenum type, const std::string &name, int size, bool array)
@@ -53,7 +45,7 @@ class Shader
     friend class ProgramBinary;
 
   public:
-    Shader(ResourceManager *manager, const rx::Renderer *renderer, GLuint handle);
+    Shader(ResourceManager *manager, GLuint handle);
 
     virtual ~Shader();
 
@@ -68,7 +60,6 @@ class Shader
     void getSource(GLsizei bufSize, GLsizei *length, char *buffer);
     int getTranslatedSourceLength() const;
     void getTranslatedSource(GLsizei bufSize, GLsizei *length, char *buffer);
-    const sh::ActiveUniforms &getUniforms();
 
     virtual void compile() = 0;
     virtual void uncompile();
@@ -85,7 +76,6 @@ class Shader
 
   protected:
     void parseVaryings();
-    void resetVaryingsRegisterAssignment();
 
     void compileToHLSL(void *compiler);
 
@@ -94,19 +84,12 @@ class Shader
     static GLenum parseType(const std::string &type);
     static bool compareVarying(const Varying &x, const Varying &y);
 
-    const rx::Renderer *const mRenderer;
-
     VaryingList mVaryings;
 
-    bool mUsesMultipleRenderTargets;
-    bool mUsesFragColor;
-    bool mUsesFragData;
     bool mUsesFragCoord;
     bool mUsesFrontFacing;
     bool mUsesPointSize;
     bool mUsesPointCoord;
-    bool mUsesDepthRange;
-    bool mUsesFragDepth;
 
     static void *mFragmentCompiler;
     static void *mVertexCompiler;
@@ -123,7 +106,6 @@ class Shader
     char *mSource;
     char *mHlsl;
     char *mInfoLog;
-    sh::ActiveUniforms mActiveUniforms;
 
     ResourceManager *mResourceManager;
 };
@@ -149,7 +131,7 @@ class VertexShader : public Shader
     friend class ProgramBinary;
 
   public:
-    VertexShader(ResourceManager *manager, const rx::Renderer *renderer, GLuint handle);
+    VertexShader(ResourceManager *manager, GLuint handle);
 
     ~VertexShader();
 
@@ -169,7 +151,7 @@ class VertexShader : public Shader
 class FragmentShader : public Shader
 {
   public:
-    FragmentShader(ResourceManager *manager,const rx::Renderer *renderer, GLuint handle);
+    FragmentShader(ResourceManager *manager, GLuint handle);
 
     ~FragmentShader();
 
