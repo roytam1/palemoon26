@@ -29,6 +29,8 @@
 #include "mozilla/mozalloc.h"
 #include "mozilla/mozalloc_oom.h"  // for mozalloc_handle_oom
 
+#include "mozilla/NullPtr.h"
+
 /* Windows doesn't have malloc_usable_size, but jemalloc has */
 #if defined(MOZ_MEMORY_WINDOWS)
 extern "C" size_t malloc_usable_size(const void *ptr);
