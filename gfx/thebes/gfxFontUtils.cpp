@@ -515,6 +515,7 @@ typedef struct {
 
 #pragma pack()
 
+#pragma optimize( "", off )
 uint32_t
 gfxFontUtils::MapCharToGlyphFormat4(const uint8_t *aBuf, PRUnichar aCh)
 {
@@ -570,6 +571,7 @@ gfxFontUtils::MapCharToGlyphFormat4(const uint8_t *aBuf, PRUnichar aCh)
 
     return 0;
 }
+#pragma optimize( "", on )
 
 uint32_t
 gfxFontUtils::MapCharToGlyphFormat12(const uint8_t *aBuf, uint32_t aCh)
