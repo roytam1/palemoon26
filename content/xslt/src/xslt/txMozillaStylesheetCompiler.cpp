@@ -488,7 +488,7 @@ txCompileObserver::startLoad(nsIURI* aUri, txStylesheetCompiler* aCompiler,
     // Always install in case of redirects
     nsRefPtr<nsCORSListenerProxy> listener =
         new nsCORSListenerProxy(sink, aReferrerPrincipal, false);
-    rv = listener->Init(channel, DataURIHandling::Disallow);
+    rv = listener->Init(channel, DataURIHandlingDisallow);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return channel->AsyncOpen(listener, parser);

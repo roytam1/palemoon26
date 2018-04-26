@@ -773,7 +773,7 @@ EventSource::InitChannelAndRequestEventSource()
 
   nsRefPtr<nsCORSListenerProxy> listener =
     new nsCORSListenerProxy(this, mPrincipal, mWithCredentials);
-  rv = listener->Init(mHttpChannel, DataURIHandling::Allow);
+  rv = listener->Init(mHttpChannel, DataURIHandlingAllow);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Start reading from the channel

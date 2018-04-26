@@ -32,10 +32,10 @@ NS_StartCORSPreflight(nsIChannel* aRequestChannel,
                       nsTArray<nsCString>& aACUnsafeHeaders,
                       nsIChannel** aPreflightChannel);
 
-enum class DataURIHandling
+enum /*class DataURIHandling*/
 {
-  Allow,
-  Disallow
+  DataURIHandlingAllow = 1,
+  DataURIHandlingDisallow = 0
 };
 
 class nsCORSListenerProxy MOZ_FINAL : public nsIStreamListener,
@@ -65,10 +65,10 @@ public:
 
   static void Shutdown();
 
-  nsresult Init(nsIChannel* aChannel, DataURIHandling aAllowDataURI);
+  nsresult Init(nsIChannel* aChannel, int aAllowDataURI);
 
 private:
-  nsresult UpdateChannel(nsIChannel* aChannel, DataURIHandling aAllowDataURI);
+  nsresult UpdateChannel(nsIChannel* aChannel, int aAllowDataURI);
   nsresult CheckRequestApproved(nsIRequest* aRequest);
 
   nsCOMPtr<nsIStreamListener> mOuterListener;

@@ -380,7 +380,7 @@ nsCORSListenerProxy::nsCORSListenerProxy(nsIStreamListener* aOuter,
 }
 
 nsresult
-nsCORSListenerProxy::Init(nsIChannel* aChannel, DataURIHandling aAllowDataURI)
+nsCORSListenerProxy::Init(nsIChannel* aChannel, int aAllowDataURI)
 {
   aChannel->GetNotificationCallbacks(getter_AddRefs(mOuterNotificationCallbacks));
   aChannel->SetNotificationCallbacks(this);
@@ -700,7 +700,7 @@ nsCORSListenerProxy::OnRedirectVerifyCallback(nsresult result)
   NS_ASSERTION(mNewRedirectChannel, "mNewRedirectChannel not set in callback");
 
   if (NS_SUCCEEDED(result)) {
-      nsresult rv = UpdateChannel(mNewRedirectChannel, DataURIHandling::Disallow);
+      nsresult rv = UpdateChannel(mNewRedirectChannel, DataURIHandlingDisallow);
       if (NS_FAILED(rv)) {
           NS_WARNING("nsCORSListenerProxy::OnRedirectVerifyCallback: "
                      "UpdateChannel() returned failure");
@@ -720,7 +720,7 @@ nsCORSListenerProxy::OnRedirectVerifyCallback(nsresult result)
 }
 
 nsresult
-nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel, DataURIHandling aAllowDataURI)
+nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel, int aAllowDataURI)
 {
   nsCOMPtr<nsIURI> uri, originalURI;
   nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
@@ -729,7 +729,7 @@ nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel, DataURIHandling aAllowD
   NS_ENSURE_SUCCESS(rv, rv);
 
   // exempt data URIs from the same origin check.
-  if (aAllowDataURI == DataURIHandling::Allow && originalURI == uri) {
+  if (aAllowDataURI == DataURIHandlingAllow && originalURI == uri) {
     bool dataScheme = false;
     rv = uri->SchemeIs("data", &dataScheme);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1103,7 +1103,7 @@ NS_StartCORSPreflight(nsIChannel* aRequestChannel,
     new nsCORSListenerProxy(preflightListener, aPrincipal,
                             aWithCredentials, method,
                             aUnsafeHeaders);
-  rv = corsListener->Init(preflightChannel, DataURIHandling::Disallow);
+  rv = corsListener->Init(preflightChannel, DataURIHandlingDisallow);
   NS_ENSURE_SUCCESS(rv, rv);
   preflightListener = corsListener;
 

@@ -643,7 +643,7 @@ nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
         new nsCORSListenerProxy(mListener,
                                 element->NodePrincipal(),
                                 false);
-      nsresult rv = crossSiteListener->Init(mChannel, DataURIHandling::Allow);
+      nsresult rv = crossSiteListener->Init(mChannel, DataURIHandlingAllow);
       listener = crossSiteListener;
       NS_ENSURE_TRUE(crossSiteListener, NS_ERROR_OUT_OF_MEMORY);
       NS_ENSURE_SUCCESS(rv, rv);

@@ -1160,7 +1160,7 @@ nsresult HTMLMediaElement::LoadResource()
       new nsCORSListenerProxy(loadListener,
                               NodePrincipal(),
                               GetCORSMode() == CORS_USE_CREDENTIALS);
-    rv = corsListener->Init(channel, DataURIHandling::Allow);
+    rv = corsListener->Init(channel, DataURIHandlingAllow);
     NS_ENSURE_SUCCESS(rv, rv);
     listener = corsListener;
   } else {
