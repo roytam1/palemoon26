@@ -29,12 +29,28 @@ nsUXThemeData::sThemeDLL = NULL;
 HMODULE
 nsUXThemeData::sDwmDLL = NULL;
 
-bool
-nsUXThemeData::sFlatMenus = false;
+BOOL
+nsUXThemeData::sFlatMenus = FALSE;
 
 bool nsUXThemeData::sTitlebarInfoPopulatedAero = false;
 bool nsUXThemeData::sTitlebarInfoPopulatedThemed = false;
 SIZE nsUXThemeData::sCommandButtons[4];
+
+nsUXThemeData::OpenThemeDataPtr nsUXThemeData::openTheme = NULL;
+nsUXThemeData::CloseThemeDataPtr nsUXThemeData::closeTheme = NULL;
+nsUXThemeData::DrawThemeBackgroundPtr nsUXThemeData::drawThemeBG = NULL;
+nsUXThemeData::DrawThemeEdgePtr nsUXThemeData::drawThemeEdge = NULL;
+nsUXThemeData::GetThemeContentRectPtr nsUXThemeData::getThemeContentRect = NULL;
+nsUXThemeData::GetThemeBackgroundRegionPtr nsUXThemeData::getThemeBackgroundRegion = NULL;
+nsUXThemeData::GetThemeMetricPtr nsUXThemeData::getThemeMetric = NULL;
+nsUXThemeData::GetThemePartSizePtr nsUXThemeData::getThemePartSize = NULL;
+nsUXThemeData::GetThemeSysFontPtr nsUXThemeData::getThemeSysFont = NULL;
+nsUXThemeData::GetThemeColorPtr nsUXThemeData::getThemeColor = NULL;
+nsUXThemeData::GetThemeMarginsPtr nsUXThemeData::getThemeMargins = NULL;
+nsUXThemeData::IsAppThemedPtr nsUXThemeData::isAppThemed = NULL;
+nsUXThemeData::GetCurrentThemeNamePtr nsUXThemeData::getCurrentThemeName = NULL;
+nsUXThemeData::GetThemeSysColorPtr nsUXThemeData::getThemeSysColor = NULL;
+nsUXThemeData::IsThemeBackgroundPartiallyTransparentPtr nsUXThemeData::isThemeBackgroundPartiallyTransparent = NULL;
 
 nsUXThemeData::DwmExtendFrameIntoClientAreaProc nsUXThemeData::dwmExtendFrameIntoClientAreaPtr = NULL;
 nsUXThemeData::DwmIsCompositionEnabledProc nsUXThemeData::dwmIsCompositionEnabledPtr = NULL;
@@ -60,6 +76,23 @@ nsUXThemeData::Initialize()
   ::ZeroMemory(sThemes, sizeof(sThemes));
   NS_ASSERTION(!sThemeDLL, "nsUXThemeData being initialized twice!");
 
+  if (GetThemeDLL()) {
+    openTheme = (OpenThemeDataPtr)GetProcAddress(sThemeDLL, "OpenThemeData");
+    closeTheme = (CloseThemeDataPtr)GetProcAddress(sThemeDLL, "CloseThemeData");
+    drawThemeBG = (DrawThemeBackgroundPtr)GetProcAddress(sThemeDLL, "DrawThemeBackground");
+    drawThemeEdge = (DrawThemeEdgePtr)GetProcAddress(sThemeDLL, "DrawThemeEdge");
+    getThemeContentRect = (GetThemeContentRectPtr)GetProcAddress(sThemeDLL, "GetThemeBackgroundContentRect");
+    getThemeBackgroundRegion = (GetThemeBackgroundRegionPtr)GetProcAddress(sThemeDLL, "GetThemeBackgroundRegion");
+    getThemeMetric = (GetThemeMetricPtr)GetProcAddress(sThemeDLL, "GetThemeMetric");
+    getThemePartSize = (GetThemePartSizePtr)GetProcAddress(sThemeDLL, "GetThemePartSize");
+    getThemeSysFont = (GetThemeSysFontPtr)GetProcAddress(sThemeDLL, "GetThemeSysFont");
+    getThemeColor = (GetThemeColorPtr)GetProcAddress(sThemeDLL, "GetThemeColor");
+    getThemeMargins = (GetThemeMarginsPtr)GetProcAddress(sThemeDLL, "GetThemeMargins");
+    isAppThemed = (IsAppThemedPtr)GetProcAddress(sThemeDLL, "IsAppThemed");
+    getCurrentThemeName = (GetCurrentThemeNamePtr)GetProcAddress(sThemeDLL, "GetCurrentThemeName");
+    getThemeSysColor = (GetThemeSysColorPtr)GetProcAddress(sThemeDLL, "GetThemeSysColor");
+    isThemeBackgroundPartiallyTransparent = (IsThemeBackgroundPartiallyTransparentPtr)GetProcAddress(sThemeDLL, "IsThemeBackgroundPartiallyTransparent");
+  }
   if (GetDwmDLL()) {
     dwmExtendFrameIntoClientAreaPtr = (DwmExtendFrameIntoClientAreaProc)::GetProcAddress(sDwmDLL, "DwmExtendFrameIntoClientArea");
     dwmIsCompositionEnabledPtr = (DwmIsCompositionEnabledProc)::GetProcAddress(sDwmDLL, "DwmIsCompositionEnabled");
@@ -79,11 +112,11 @@ void
 nsUXThemeData::Invalidate() {
   for(int i = 0; i < eUXNumClasses; i++) {
     if(sThemes[i]) {
-      CloseThemeData(sThemes[i]);
+      closeTheme(sThemes[i]);
       sThemes[i] = NULL;
     }
   }
-  BOOL useFlat = FALSE;
+  BOOL useFlat = false;
   sFlatMenus = ::SystemParametersInfo(SPI_GETFLATMENU, 0, &useFlat, 0) ?
                    useFlat : false;
 }
@@ -91,9 +124,11 @@ nsUXThemeData::Invalidate() {
 HANDLE
 nsUXThemeData::GetTheme(nsUXThemeClass cls) {
   NS_ASSERTION(cls < eUXNumClasses, "Invalid theme class!");
+  if(!sThemeDLL)
+    return NULL;
   if(!sThemes[cls])
   {
-    sThemes[cls] = OpenThemeData(NULL, GetClassName(cls));
+    sThemes[cls] = openTheme(NULL, GetClassName(cls));
   }
   return sThemes[cls];
 }
@@ -336,14 +371,14 @@ nsUXThemeData::UpdateNativeThemeInfo()
     sIsHighContrastOn = false;
   }
 
-  if (!IsAppThemed()) {
+  if (!IsAppThemed() || !getCurrentThemeName) {
     sThemeId = LookAndFeel::eWindowsTheme_Classic;
     return;
   }
 
   WCHAR themeFileName[MAX_PATH + 1];
   WCHAR themeColor[MAX_PATH + 1];
-  if (FAILED(GetCurrentThemeName(themeFileName,
+  if (FAILED(getCurrentThemeName(themeFileName,
                                  MAX_PATH,
                                  themeColor,
                                  MAX_PATH,

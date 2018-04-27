@@ -151,6 +151,20 @@
 #define MSM_NORMAL 1
 #define MSM_DISABLED 2
 
+// Theme size constants
+// minimum size
+#define TS_MIN 0
+// size without stretching
+#define TS_TRUE 1
+// size that theme mgr will use to draw part
+#define TS_DRAW 2
+
+// From tmschema.h in the Vista SDK
+#define TMT_TEXTCOLOR 3803
+#define TMT_SIZINGMARGINS 3601
+#define TMT_CONTENTMARGINS 3602
+#define TMT_CAPTIONMARGINS 3603
+
 // Rebar constants
 #define RP_BAND              3
 #define RP_BACKGROUND        6

@@ -32,6 +32,7 @@ private:
    * Cursor helpers
    */
   static uint8_t*         Data32BitTo1Bit(uint8_t* aImageData, uint32_t aWidth, uint32_t aHeight);
+  static bool             IsCursorTranslucencySupported();
   static HBITMAP          DataToBitmap(uint8_t* aImageData, uint32_t aWidth, uint32_t aHeight, uint32_t aDepth);
 };
 

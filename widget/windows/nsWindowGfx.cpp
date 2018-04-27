@@ -705,9 +705,23 @@ uint8_t* nsWindowGfx::Data32BitTo1Bit(uint8_t* aImageData,
   return outData;
 }
 
+bool nsWindowGfx::IsCursorTranslucencySupported()
+{
+  static bool didCheck = false;
+  static bool isSupported = false;
+  if (!didCheck) {
+    didCheck = true;
+    // Cursor translucency is supported on Windows XP and newer
+    isSupported = WinUtils::GetWindowsVersion() >= WinUtils::WINXP_VERSION;
+  }
+
+  return isSupported;
+}
+
 /**
  * Convert the given image data to a HBITMAP. If the requested depth is
- * 32 bit, a bitmap with an alpha channel will be returned.
+ * 32 bit and the OS supports translucency, a bitmap with an alpha channel
+ * will be returned.
  *
  * @param aImageData The image data to convert. Must use the format accepted
  *                   by CreateDIBitmap.
@@ -726,7 +740,7 @@ HBITMAP nsWindowGfx::DataToBitmap(uint8_t* aImageData,
 {
   HDC dc = ::GetDC(NULL);
 
-  if (aDepth == 32) {
+  if (aDepth == 32 && IsCursorTranslucencySupported()) {
     // Alpha channel. We need the new header.
     BITMAPV4HEADER head = { 0 };
     head.bV4Size = sizeof(head);

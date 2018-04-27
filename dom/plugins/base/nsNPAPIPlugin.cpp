@@ -267,6 +267,16 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
 #endif
 #endif
 
+#ifdef XP_WIN
+  OSVERSIONINFO osVerInfo = {0};
+  osVerInfo.dwOSVersionInfoSize = sizeof(osVerInfo);
+  GetVersionEx(&osVerInfo);
+  // Always disabled on 2K or less. (bug 536303)
+  if (osVerInfo.dwMajorVersion < 5 ||
+      (osVerInfo.dwMajorVersion == 5 && osVerInfo.dwMinorVersion == 0))
+    return false;
+#endif
+
   nsIPrefBranch* prefs = Preferences::GetRootBranch();
   if (!prefs) {
     return false;

@@ -93,6 +93,9 @@ private:
     // Don't try to dial again within a few seconds of when user pressed cancel.
     static PRIntervalTime mDontRetryUntil;
 
+    // OS version info.
+    OSVERSIONINFO mOSVerInfo;
+
 public:
   
     // ctor

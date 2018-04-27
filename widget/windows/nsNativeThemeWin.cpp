@@ -118,8 +118,7 @@ static MARGINS
 GetCheckboxMargins(HANDLE theme, HDC hdc)
 {
     MARGINS checkboxContent = {0};
-    GetThemeMargins(theme, hdc, MENU_POPUPCHECK, MCB_NORMAL,
-                    TMT_CONTENTMARGINS, NULL, &checkboxContent);
+    nsUXThemeData::getThemeMargins(theme, hdc, MENU_POPUPCHECK, MCB_NORMAL, TMT_CONTENTMARGINS, NULL, &checkboxContent);
     return checkboxContent;
 }
 
@@ -127,8 +126,7 @@ static SIZE
 GetCheckboxBGSize(HANDLE theme, HDC hdc)
 {
     SIZE checkboxSize;
-    GetThemePartSize(theme, hdc, MENU_POPUPCHECK, MC_CHECKMARKNORMAL,
-                     NULL, TS_TRUE, &checkboxSize);
+    nsUXThemeData::getThemePartSize(theme, hdc, MENU_POPUPCHECK, MC_CHECKMARKNORMAL, NULL, TS_TRUE, &checkboxSize);
 
     MARGINS checkboxMargins = GetCheckboxMargins(theme, hdc);
 
@@ -150,10 +148,8 @@ GetCheckboxBGBounds(HANDLE theme, HDC hdc)
 {
     MARGINS checkboxBGSizing = {0};
     MARGINS checkboxBGContent = {0};
-    GetThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL,
-                    TMT_SIZINGMARGINS, NULL, &checkboxBGSizing);
-    GetThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL,
-                    TMT_CONTENTMARGINS, NULL, &checkboxBGContent);
+    nsUXThemeData::getThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL, TMT_SIZINGMARGINS, NULL, &checkboxBGSizing);
+    nsUXThemeData::getThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL, TMT_CONTENTMARGINS, NULL, &checkboxBGContent);
 
 #define posdx(d) ((d) > 0 ? d : 0)
 
@@ -178,12 +174,12 @@ static SIZE
 GetGutterSize(HANDLE theme, HDC hdc)
 {
     SIZE gutterSize;
-    GetThemePartSize(theme, hdc, MENU_POPUPGUTTER, 0, NULL, TS_TRUE, &gutterSize);
+    nsUXThemeData::getThemePartSize(theme, hdc, MENU_POPUPGUTTER, 0, NULL, TS_TRUE, &gutterSize);
 
     SIZE checkboxBGSize(GetCheckboxBGBounds(theme, hdc));
 
     SIZE itemSize;
-    GetThemePartSize(theme, hdc, MENU_POPUPITEM, MPI_NORMAL, NULL, TS_TRUE, &itemSize);
+    nsUXThemeData::getThemePartSize(theme, hdc, MENU_POPUPITEM, MPI_NORMAL, NULL, TS_TRUE, &itemSize);
 
     // Figure out how big the menuitem's icon will be (if present) at current DPI
     double scaleFactor = nsIWidget::DefaultScaleOverride();
@@ -196,7 +192,7 @@ GetGutterSize(HANDLE theme, HDC hdc)
     };
     // Not really sure what margins should be used here, but this seems to work in practice...
     MARGINS margins = {0};
-    GetThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL,
+    nsUXThemeData::getThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL,
                     TMT_CONTENTMARGINS, NULL, &margins);
     iconSize.cx += margins.cxLeftWidth + margins.cxRightWidth;
     iconSize.cy += margins.cyTopHeight + margins.cyBottomHeight;
@@ -240,7 +236,7 @@ DrawThemeBGRTLAware(HANDLE aTheme, HDC aHdc, int aPart, int aState,
   NS_ASSERTION(aClipRect, "Bad clip rect.");
 
   if (!aIsRtl) {
-    return DrawThemeBackground(aTheme, aHdc, aPart, aState,
+    return nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState,
                                aWidgetRect, aClipRect);
   }
 
@@ -266,14 +262,14 @@ DrawThemeBGRTLAware(HANDLE aTheme, HDC aHdc, int aPart, int aState,
     }
 
     SetLayout(aHdc, LAYOUT_RTL);
-    HRESULT hr = DrawThemeBackground(aTheme, aHdc, aPart, aState, &newWRect,
+    HRESULT hr = nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState, &newWRect,
                                      newCRectPtr);
     SetLayout(aHdc, 0);
     if (SUCCEEDED(hr)) {
       return hr;
     }
   }
-  return DrawThemeBackground(aTheme, aHdc, aPart, aState,
+  return nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState,
                              aWidgetRect, aClipRect);
 }
 
@@ -347,7 +343,7 @@ AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
   if (!aSize)
     return;
   RECT offset;
-  if (!IsAppThemed())
+  if (!nsUXThemeData::IsAppThemed())
     offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
   else if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION)
     offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
@@ -362,7 +358,7 @@ AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
 static void
 OffsetBackgroundRect(RECT& rect, CaptionButton button) {
   RECT offset;
-  if (!IsAppThemed())
+  if (!nsUXThemeData::IsAppThemed())
     offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
   else if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION)
     offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
@@ -576,17 +572,17 @@ DrawChunkProgressMeter(HTHEME aTheme, HDC aHdc, int aPart,
   // paint the chunks, so we do that manually. For vertical meters, the theme
   // library draws everything correctly.
   if (aIsVertical) {
-    DrawThemeBackground(aTheme, aHdc, aPart, aState, aWidgetRect, aClipRect);
+    nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState, aWidgetRect, aClipRect);
     return;
   }
 
   // query for the proper chunk metrics
   int chunkSize, spaceSize;
-  if (FAILED(GetThemeMetric(aTheme, aHdc, aPart, aState,
+  if (FAILED(nsUXThemeData::getThemeMetric(aTheme, aHdc, aPart, aState,
                             TMT_PROGRESSCHUNKSIZE, &chunkSize)) ||
-      FAILED(GetThemeMetric(aTheme, aHdc, aPart, aState,
+      FAILED(nsUXThemeData::getThemeMetric(aTheme, aHdc, aPart, aState,
                             TMT_PROGRESSSPACESIZE, &spaceSize))) {
-    DrawThemeBackground(aTheme, aHdc, aPart, aState, aWidgetRect, aClipRect);
+    nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState, aWidgetRect, aClipRect);
     return;
   }
 
@@ -607,7 +603,7 @@ DrawChunkProgressMeter(HTHEME aTheme, HDC aHdc, int aPart,
       }
       RECT bounds =
         { chunk, aWidgetRect->top, chunk + chunkSize, aWidgetRect->bottom };
-      DrawThemeBackground(aTheme, aHdc, aPart, aState, &bounds, aClipRect);
+      nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState, &bounds, aClipRect);
     }
   } else {
     // rtl needs to grow in the opposite direction to look right.
@@ -620,7 +616,7 @@ DrawChunkProgressMeter(HTHEME aTheme, HDC aHdc, int aPart,
       }
       RECT bounds =
         { chunk - chunkSize, aWidgetRect->top, chunk, aWidgetRect->bottom };
-      DrawThemeBackground(aTheme, aHdc, aPart, aState, &bounds, aClipRect);
+      nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState, &bounds, aClipRect);
     }
   }
 }
@@ -679,7 +675,7 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
   if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
     // Vista and up progress meter is fill style, rendered here. We render
     // the pulse overlay in the follow up section below.
-    DrawThemeBackground(aTheme, aHdc, aPart, aState,
+    nsUXThemeData::drawThemeBG(aTheme, aHdc, aPart, aState,
                         &adjWidgetRect, &adjClipRect);
     if (!IsProgressMeterFilled(aFrame)) {
       animate = true;
@@ -698,7 +694,7 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
       CalculateProgressOverlayRect(aFrame, &adjWidgetRect, vertical,
                                    indeterminate, false);
     if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
-      DrawThemeBackground(aTheme, aHdc, overlayPart, aState, &overlayRect,
+      nsUXThemeData::drawThemeBG(aTheme, aHdc, overlayPart, aState, &overlayRect,
                           &adjClipRect);
     } else {
       DrawChunkProgressMeter(aTheme, aHdc, overlayPart, aState, aFrame,
@@ -1539,6 +1535,9 @@ nsNativeThemeWin::DrawWidgetBackground(nsRenderingContext* aContext,
   if (!theme)
     return ClassicDrawWidgetBackground(aContext, aFrame, aWidgetType, aRect, aDirtyRect); 
 
+  if (!nsUXThemeData::drawThemeBG)
+    return NS_ERROR_FAILURE;
+
   // ^^ without the right sdk, assume xp theming and fall through.
   if (nsUXThemeData::CheckForCompositor()) {
     switch (aWidgetType) {
@@ -1680,10 +1679,10 @@ RENDER_AGAIN:
       aWidgetType == NS_THEME_SCALE_HORIZONTAL ||
       aWidgetType == NS_THEME_SCALE_VERTICAL) {
     RECT contentRect;
-    GetThemeBackgroundContentRect(theme, hdc, part, state, &widgetRect, &contentRect);
+    nsUXThemeData::getThemeContentRect(theme, hdc, part, state, &widgetRect, &contentRect);
 
     SIZE siz;
-    GetThemePartSize(theme, hdc, part, state, &widgetRect, TS_TRUE, &siz);
+    nsUXThemeData::getThemePartSize(theme, hdc, part, state, &widgetRect, TS_TRUE, &siz);
 
     // When rounding is necessary, we round the position of the track
     // away from the chevron of the thumb to make it look better.
@@ -1702,7 +1701,7 @@ RENDER_AGAIN:
       }
     }
 
-    DrawThemeBackground(theme, hdc, part, state, &contentRect, &clipRect);
+    nsUXThemeData::drawThemeBG(theme, hdc, part, state, &contentRect, &clipRect);
   }
   else if (aWidgetType == NS_THEME_MENUCHECKBOX || aWidgetType == NS_THEME_MENURADIO)
   {
@@ -1731,7 +1730,7 @@ RENDER_AGAIN:
         checkBGRect.top += (checkBGRect.bottom - checkBGRect.top)/2 - checkboxBGSize.cy/2;
         checkBGRect.bottom = checkBGRect.top + checkboxBGSize.cy;
 
-        DrawThemeBackground(theme, hdc, MENU_POPUPCHECKBACKGROUND, bgState, &checkBGRect, &clipRect);
+        nsUXThemeData::drawThemeBG(theme, hdc, MENU_POPUPCHECKBACKGROUND, bgState, &checkBGRect, &clipRect);
 
         MARGINS checkMargins = GetCheckboxMargins(theme, hdc);
         RECT checkRect = checkBGRect;
@@ -1739,14 +1738,14 @@ RENDER_AGAIN:
         checkRect.right -= checkMargins.cxRightWidth;
         checkRect.top += checkMargins.cyTopHeight;
         checkRect.bottom -= checkMargins.cyBottomHeight;
-        DrawThemeBackground(theme, hdc, MENU_POPUPCHECK, state, &checkRect, &clipRect);
+        nsUXThemeData::drawThemeBG(theme, hdc, MENU_POPUPCHECK, state, &checkRect, &clipRect);
       }
   }
   else if (aWidgetType == NS_THEME_MENUPOPUP)
   {
-    DrawThemeBackground(theme, hdc, MENU_POPUPBORDERS, /* state */ 0, &widgetRect, &clipRect);
+    nsUXThemeData::drawThemeBG(theme, hdc, MENU_POPUPBORDERS, /* state */ 0, &widgetRect, &clipRect);
     SIZE borderSize;
-    GetThemePartSize(theme, hdc, MENU_POPUPBORDERS, 0, NULL, TS_TRUE, &borderSize);
+    nsUXThemeData::getThemePartSize(theme, hdc, MENU_POPUPBORDERS, 0, NULL, TS_TRUE, &borderSize);
 
     RECT bgRect = widgetRect;
     bgRect.top += borderSize.cy;
@@ -1754,7 +1753,7 @@ RENDER_AGAIN:
     bgRect.left += borderSize.cx;
     bgRect.right -= borderSize.cx;
 
-    DrawThemeBackground(theme, hdc, MENU_POPUPBACKGROUND, /* state */ 0, &bgRect, &clipRect);
+    nsUXThemeData::drawThemeBG(theme, hdc, MENU_POPUPBACKGROUND, /* state */ 0, &bgRect, &clipRect);
 
     SIZE gutterSize(GetGutterSize(theme, hdc));
 
@@ -1782,7 +1781,7 @@ RENDER_AGAIN:
     else
       sepRect.left += gutterSize.cx;
 
-    DrawThemeBackground(theme, hdc, MENU_POPUPSEPARATOR, /* state */ 0, &sepRect, &clipRect);
+    nsUXThemeData::drawThemeBG(theme, hdc, MENU_POPUPSEPARATOR, /* state */ 0, &sepRect, &clipRect);
   }
   else if (aWidgetType == NS_THEME_MENUARROW)
   {
@@ -1793,7 +1792,7 @@ RENDER_AGAIN:
     // have to position and scale what we draw.
 
     SIZE glyphSize;
-    GetThemePartSize(theme, hdc, part, state, nullptr, TS_TRUE, &glyphSize);
+    nsUXThemeData::getThemePartSize(theme, hdc, part, state, nullptr, TS_TRUE, &glyphSize);
 
     int32_t widgetHeight = widgetRect.bottom - widgetRect.top;
 
@@ -1834,7 +1833,7 @@ RENDER_AGAIN:
     // using alpha recovery, so this makes the corners transparent.
     COLORREF color;
     color = GetPixel(hdc, widgetRect.left, widgetRect.top);
-    DrawThemeBackground(theme, hdc, part, state, &widgetRect, &clipRect);
+    nsUXThemeData::drawThemeBG(theme, hdc, part, state, &widgetRect, &clipRect);
     SetPixel(hdc, widgetRect.left, widgetRect.top, color);
     SetPixel(hdc, widgetRect.right-1, widgetRect.top, color);
     SetPixel(hdc, widgetRect.right-1, widgetRect.bottom-1, color);
@@ -1848,7 +1847,7 @@ RENDER_AGAIN:
   // If part is negative, the element wishes us to not render a themed
   // background, instead opting to be drawn specially below.
   else if (part >= 0) {
-    DrawThemeBackground(theme, hdc, part, state, &widgetRect, &clipRect);
+    nsUXThemeData::drawThemeBG(theme, hdc, part, state, &widgetRect, &clipRect);
   }
 
   // Draw focus rectangles for XP HTML checkboxes and radio buttons
@@ -1911,7 +1910,7 @@ RENDER_AGAIN:
       return NS_ERROR_FAILURE;
 
     widgetRect.bottom = widgetRect.top + TB_SEPARATOR_HEIGHT;
-    DrawThemeEdge(theme, hdc, RP_BAND, 0, &widgetRect, EDGE_ETCHED, BF_TOP, NULL);
+    nsUXThemeData::drawThemeEdge(theme, hdc, RP_BAND, 0, &widgetRect, EDGE_ETCHED, BF_TOP, NULL);
   }
   else if (aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL ||
            aWidgetType == NS_THEME_SCROLLBAR_THUMB_VERTICAL)
@@ -1923,12 +1922,12 @@ RENDER_AGAIN:
     int gripPart = (aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL) ?
                    SP_GRIPPERHOR : SP_GRIPPERVERT;
 
-    if (GetThemePartSize(theme, hdc, gripPart, state, NULL, TS_TRUE, &gripSize) == S_OK &&
-        GetThemeMargins(theme, hdc, part, state, TMT_CONTENTMARGINS, NULL, &thumbMgns) == S_OK &&
+    if (nsUXThemeData::getThemePartSize(theme, hdc, gripPart, state, NULL, TS_TRUE, &gripSize) == S_OK &&
+        nsUXThemeData::getThemeMargins(theme, hdc, part, state, TMT_CONTENTMARGINS, NULL, &thumbMgns) == S_OK &&
         gripSize.cx + thumbMgns.cxLeftWidth + thumbMgns.cxRightWidth <= widgetRect.right - widgetRect.left &&
         gripSize.cy + thumbMgns.cyTopHeight + thumbMgns.cyBottomHeight <= widgetRect.bottom - widgetRect.top)
     {
-      DrawThemeBackground(theme, hdc, gripPart, state, &widgetRect, &clipRect);
+      nsUXThemeData::drawThemeBG(theme, hdc, gripPart, state, &widgetRect, &clipRect);
     }
   }
   else if ((aWidgetType == NS_THEME_WINDOW_BUTTON_BOX ||
@@ -2030,6 +2029,9 @@ nsNativeThemeWin::GetWidgetBorder(nsDeviceContext* aContext,
       aWidgetType == NS_THEME_WIN_GLASS || aWidgetType == NS_THEME_WIN_BORDERLESS_GLASS)
     return NS_OK; // Don't worry about it.
 
+  if (!nsUXThemeData::getThemeContentRect)
+    return NS_ERROR_FAILURE;
+
   int32_t part, state;
   nsresult rv = GetThemePartAndState(aFrame, aWidgetType, part, state);
   if (NS_FAILED(rv))
@@ -2047,7 +2049,7 @@ nsNativeThemeWin::GetWidgetBorder(nsDeviceContext* aContext,
   outerRect.top = outerRect.left = 100;
   outerRect.right = outerRect.bottom = 200;
   RECT contentRect(outerRect);
-  HRESULT res = GetThemeBackgroundContentRect(theme, NULL, part, state, &outerRect, &contentRect);
+  HRESULT res = nsUXThemeData::getThemeContentRect(theme, NULL, part, state, &outerRect, &contentRect);
   
   if (FAILED(res))
     return NS_ERROR_FAILURE;
@@ -2136,7 +2138,7 @@ nsNativeThemeWin::GetWidgetPadding(nsDeviceContext* aContext,
   if (aWidgetType == NS_THEME_MENUPOPUP)
   {
     SIZE popupSize;
-    GetThemePartSize(theme, NULL, MENU_POPUPBORDERS, /* state */ 0, NULL, TS_TRUE, &popupSize);
+    nsUXThemeData::getThemePartSize(theme, NULL, MENU_POPUPBORDERS, /* state */ 0, NULL, TS_TRUE, &popupSize);
     aResult->top = aResult->bottom = popupSize.cy;
     aResult->left = aResult->right = popupSize.cx;
     return true;
@@ -2294,10 +2296,13 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsRenderingContext* aContext, nsIFrame* a
   if (aWidgetType == NS_THEME_MENUITEM && IsTopLevelMenu(aFrame))
       return NS_OK; // Don't worry about it for top level menus
 
+  if (!nsUXThemeData::getThemePartSize)
+    return NS_ERROR_FAILURE;
+
   // Call GetSystemMetrics to determine size for WinXP scrollbars
   // (GetThemeSysSize API returns the optimal size for the theme, but 
   //  Windows appears to always use metrics when drawing standard scrollbars)
-  THEMESIZE sizeReq = TS_TRUE; // Best-fit size
+  PRInt32 sizeReq = TS_TRUE; // Best-fit size
   switch (aWidgetType) {
     case NS_THEME_SCROLLBAR_THUMB_VERTICAL:
     case NS_THEME_SCROLLBAR_THUMB_HORIZONTAL:
@@ -2466,7 +2471,7 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsRenderingContext* aContext, nsIFrame* a
     return NS_ERROR_FAILURE;
 
   SIZE sz;
-  GetThemePartSize(theme, hdc, part, state, NULL, sizeReq, &sz);
+  nsUXThemeData::getThemePartSize(theme, hdc, part, state, NULL, sizeReq, &sz);
   aResult->width = sz.cx;
   aResult->height = sz.cy;
 
@@ -2673,12 +2678,12 @@ nsNativeThemeWin::GetWidgetTransparency(nsIFrame* aFrame, uint8_t aWidgetType)
   NS_ENSURE_SUCCESS(rv, eUnknownTransparency);
 
   if (part <= 0) {
-    // Not a real part code, so IsThemeBackgroundPartiallyTransparent may
+    // Not a real part code, so isThemeBackgroundPartiallyTransparent may
     // not work, so don't call it.
     return eUnknownTransparency;
   }
 
-  if (IsThemeBackgroundPartiallyTransparent(theme, part, state))
+  if (nsUXThemeData::isThemeBackgroundPartiallyTransparent(theme, part, state))
     return eTransparent;
   return eOpaque;
 }

@@ -26,6 +26,7 @@
 #include "nsString.h"
 #include "nsIFile.h"
 #include "nsUnicharUtils.h"
+#include "nsSetDllDirectory.h"
 
 #include <shlwapi.h>
 #define SHOCKWAVE_BASE_FILENAME L"np32dsw"
@@ -300,7 +301,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
   }
 
   if (protectCurrentDirectory) {
-    SetDllDirectory(NULL);
+    mozilla::NS_SetDllDirectory(NULL);
   }
 
   nsresult rv = mPlugin->Load(outLibrary);
@@ -308,7 +309,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
       *outLibrary = NULL;
 
   if (protectCurrentDirectory) {
-    SetDllDirectory(L"");
+    mozilla::NS_SetDllDirectory(L"");
   }
 
   if (restoreOrigDir) {

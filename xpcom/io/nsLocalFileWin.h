@@ -23,6 +23,11 @@
 
 #include <sys/stat.h>
 
+typedef LPITEMIDLIST (WINAPI *ILCreateFromPathWPtr)(PCWSTR);
+typedef HRESULT (WINAPI *SHOpenFolderAndSelectItemsPtr)(PCIDLIST_ABSOLUTE, UINT,
+                                                        PCUITEMID_CHILD_ARRAY,
+                                                        DWORD);
+
 class nsLocalFile MOZ_FINAL : public nsILocalFileWin,
                               public nsIHashable
 {

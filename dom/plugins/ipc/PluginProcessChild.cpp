@@ -113,7 +113,7 @@ PluginProcessChild::Init()
 
     if (ShouldProtectPluginCurrentDirectory(values[0].c_str())) {
         SanitizeEnvironmentVariables();
-        SetDllDirectory(L"");
+        NS_SetDllDirectory(L"");
     }
 
     pluginFilename = WideToUTF8(values[0]);

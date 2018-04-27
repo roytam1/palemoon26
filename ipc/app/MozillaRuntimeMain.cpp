@@ -78,7 +78,7 @@ main(int argc, char* argv[])
     // the details.
     if (proctype != GoannaProcessType_Plugin) {
         mozilla::SanitizeEnvironmentVariables();
-        SetDllDirectory(L"");
+        mozilla::NS_SetDllDirectory(L"");
     }
 #endif
 

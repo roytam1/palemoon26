@@ -71,6 +71,7 @@ private:
   // protected with mLock.
   int32_t mExitValue;
 #if defined(PROCESSMODEL_WINAPI)
+  typedef DWORD (WINAPI*GetProcessIdPtr)(HANDLE process);
   HANDLE mProcess;
 #elif !defined(XP_MACOSX)
   PRProcess *mProcess;

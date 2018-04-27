@@ -16,6 +16,10 @@
 using namespace mozilla::widget;
 using mozilla::LookAndFeel;
 
+typedef UINT (CALLBACK *SHAppBarMessagePtr)(DWORD, PAPPBARDATA);
+SHAppBarMessagePtr gSHAppBarMessage = NULL;
+static HINSTANCE gShell32DLLInst = NULL;
+
 static nsresult GetColorFromTheme(nsUXThemeClass cls,
                            int32_t aPart,
                            int32_t aState,
@@ -23,7 +27,7 @@ static nsresult GetColorFromTheme(nsUXThemeClass cls,
                            nscolor &aColor)
 {
   COLORREF color;
-  HRESULT hr = GetThemeColor(nsUXThemeData::GetTheme(cls), aPart, aState, aPropId, &color);
+  HRESULT hr = nsUXThemeData::GetThemeColor(cls, aPart, aState, aPropId, &color);
   if (hr == S_OK)
   {
     aColor = COLOREF_2_NSRGB(color);
@@ -52,10 +56,22 @@ int32_t IsTouchDeviceSupportPresent()
 
 nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
 {
+  gShell32DLLInst = LoadLibraryW(L"Shell32.dll");
+  if (gShell32DLLInst)
+  {
+      gSHAppBarMessage = (SHAppBarMessagePtr) GetProcAddress(gShell32DLLInst,
+                                                             "SHAppBarMessage");
+  }
 }
 
 nsLookAndFeel::~nsLookAndFeel()
 {
+   if (gShell32DLLInst)
+   {
+       FreeLibrary(gShell32DLLInst);
+       gShell32DLLInst = NULL;
+       gSHAppBarMessage = NULL;
+   }
 }
 
 nsresult
@@ -165,7 +181,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
       break;
     case eColorID__moz_menubarhovertext:
       if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION ||
-          !IsAppThemed())
+          !nsUXThemeData::isAppThemed())
       {
         idx = nsUXThemeData::sFlatMenus ?
                 COLOR_HIGHLIGHTTEXT :
@@ -175,7 +191,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
       // Fall through
     case eColorID__moz_menuhovertext:
       if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-          IsAppThemed())
+          nsUXThemeData::IsAppThemed())
       {
         res = ::GetColorFromTheme(eUXMenu,
                                   MENU_POPUPITEM, MPI_HOT, TMT_TEXTCOLOR, aColor);
@@ -252,7 +268,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
       break;
     case eColorID__moz_win_mediatext:
       if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-          IsAppThemed()) {
+          nsUXThemeData::IsAppThemed()) {
         res = ::GetColorFromTheme(eUXMediaToolbar,
                                   TP_BUTTON, TS_NORMAL, TMT_TEXTCOLOR, aColor);
         if (NS_SUCCEEDED(res))
@@ -263,7 +279,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
       break;
     case eColorID__moz_win_communicationstext:
       if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-          IsAppThemed())
+          nsUXThemeData::IsAppThemed())
       {
         res = ::GetColorFromTheme(eUXCommunicationsToolbar,
                                   TP_BUTTON, TS_NORMAL, TMT_TEXTCOLOR, aColor);
@@ -370,7 +386,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
         aResult = 3;
         break;
     case eIntID_WindowsClassic:
-        aResult = !IsAppThemed();
+        aResult = !nsUXThemeData::IsAppThemed();
         break;
     case eIntID_TouchEnabled:
         aResult = IsTouchDeviceSupportPresent();
@@ -429,6 +445,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
         break;
     case eIntID_AlertNotificationOrigin:
         aResult = 0;
+        if (gSHAppBarMessage)
         {
           // Get task bar window handle
           HWND shellWindow = FindWindowW(L"Shell_TrayWnd", NULL);
@@ -439,7 +456,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
             APPBARDATA appBarData;
             appBarData.hWnd = shellWindow;
             appBarData.cbSize = sizeof(appBarData);
-            if (SHAppBarMessage(ABM_GETTASKBARPOS, &appBarData))
+            if (gSHAppBarMessage(ABM_GETTASKBARPOS, &appBarData))
             {
               // Set alert origin as a bit field - see LookAndFeel.h
               // 0 represents bottom right, sliding vertically.
