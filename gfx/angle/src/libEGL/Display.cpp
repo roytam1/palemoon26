@@ -111,8 +111,11 @@ Display::~Display()
     }
 }
 
+typedef BOOL (WINAPI *GetModuleHandleExAProc)(DWORD dwFlags, LPCSTR lpModuleName, HMODULE* phModule);
+
 bool Display::initialize()
 {
+    GetModuleHandleExAProc GetModuleHandleExPtr = (GetModuleHandleExAProc) GetProcAddress(GetModuleHandle("kernel32.dll"),"GetModuleHandleExA");
     if (isInitialized())
     {
         return true;
@@ -141,7 +144,7 @@ bool Display::initialize()
   
       for (int i = 0; i < sizeof(d3dCompilerNames) / sizeof(*d3dCompilerNames); ++i)
       {
-          if (GetModuleHandleEx(0, d3dCompilerNames[i], &mD3dCompilerModule))
+          if (GetModuleHandleExPtr && GetModuleHandleExPtr(0, d3dCompilerNames[i], &mD3dCompilerModule))
           {
               break;
           }

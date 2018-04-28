@@ -948,7 +948,7 @@ EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
         return true;
 
 # if defined(XP_WIN)
-    if (!AddVectoredExceptionHandler(/* FirstHandler = */true, AsmJSExceptionHandler))
+    if (!SetUnhandledExceptionFilter(AsmJSExceptionHandler))
         return false;
 # else  // assume Unix
     struct sigaction sigAction;

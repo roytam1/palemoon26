@@ -41,14 +41,18 @@ GetNumberOfLogicalProcessors(void)
 }
 #endif
 
+typedef BOOL (WINAPI* GetLogicalProcessorInformationProc)(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION Buffer, PDWORD ReturnLength);
+
 static void
 GetNumberOfProcessors(void)
 {
 #ifdef WIN32
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION SystemLogicalProcessorInformation = NULL;
     DWORD SizeSystemLogicalProcessorInformation = 0;
+    GetLogicalProcessorInformationProc GetLogicalProcessorInformationPtr = (GetLogicalProcessorInformationProc) GetProcAddress(GetModuleHandle("kernel32.dll"),"GetLogicalProcessorInformation");
 
-    while(!GetLogicalProcessorInformation(SystemLogicalProcessorInformation, &SizeSystemLogicalProcessorInformation)) {
+    if(GetLogicalProcessorInformationPtr)
+    while(!GetLogicalProcessorInformationPtr(SystemLogicalProcessorInformation, &SizeSystemLogicalProcessorInformation)) {
         if(SystemLogicalProcessorInformation) free(SystemLogicalProcessorInformation);
 
         if(GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
@@ -69,7 +73,7 @@ GetNumberOfProcessors(void)
         if(Ptr++->Relationship == RelationProcessorCore) ProcessorCore++;
     }
 
-    free(SystemLogicalProcessorInformation);
+    if(SystemLogicalProcessorInformation) free(SystemLogicalProcessorInformation);
 
     if(ProcessorCore) {
         NumberOfProcessors = ProcessorCore;

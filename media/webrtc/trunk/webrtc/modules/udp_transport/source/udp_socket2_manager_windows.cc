@@ -461,7 +461,7 @@ WebRtc_Word32 IoContextPool::Init(WebRtc_UWord32 /*increaseSize*/)
     {
         return -1;
     }
-    InitializeSListHead(_pListHead);
+    InitializeSListHead_kex(_pListHead);
     _init = true;
     return 0;
 }
@@ -473,7 +473,7 @@ PerIoContext* IoContextPool::PopIoContext()
         return NULL;
     }
 
-    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList(_pListHead);
+    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
     if(pListEntry == NULL)
     {
         IoContextPoolItem* item = (IoContextPoolItem*)
@@ -518,7 +518,7 @@ WebRtc_Word32 IoContextPool::PushIoContext(PerIoContext* pIoContext)
         --_size;
         return 0;
     }
-    InterlockedPushEntrySList(_pListHead, &(item->itemEntry));
+    InterlockedPushEntrySList_kex(_pListHead, &(item->itemEntry));
     return 0;
 }
 
@@ -530,14 +530,14 @@ WebRtc_Word32 IoContextPool::Free()
     }
 
     WebRtc_Word32 itemsFreed = 0;
-    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList(_pListHead);
+    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
     while(pListEntry != NULL)
     {
         IoContextPoolItem* item = ((IoContextPoolItem*)pListEntry);
         AlignedFree(item);
         --_size;
         itemsFreed++;
-        pListEntry = InterlockedPopEntrySList(_pListHead);
+        pListEntry = InterlockedPopEntrySList_kex(_pListHead);
     }
     return itemsFreed;
 }

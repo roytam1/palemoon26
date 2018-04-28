@@ -56,10 +56,10 @@
 #define _EVENT_HAVE_FCNTL_H 1
 
 /* Define to 1 if you have the `getaddrinfo' function. */
-#define _EVENT_HAVE_GETADDRINFO 1
+/* #undef _EVENT_HAVE_GETADDRINFO */
 
 /* Define to 1 if you have the `getnameinfo' function. */
-#define _EVENT_HAVE_GETNAMEINFO 1
+/* #undef _EVENT_HAVE_GETNAMEINFO */
 
 /* Define to 1 if you have the `getprotobynumber' function. */
 #define _EVENT_HAVE_GETPROTOBYNUMBER 1

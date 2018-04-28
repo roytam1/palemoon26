@@ -81,6 +81,53 @@ struct cubeb_stream {
   float soft_volume;
 };
 
+/* Wrappers From KernelEx */
+
+PSLIST_ENTRY WINAPI InterlockedFlushSList_kex(PSLIST_HEADER ListHead)
+{
+	PSLIST_ENTRY NewEntry = NULL;
+
+	/* UNIMPLEMENTED*/
+
+	return NewEntry;
+}
+
+PSLIST_ENTRY WINAPI InterlockedPopEntrySList_kex(PSLIST_HEADER ListHead)
+{
+	PSLIST_ENTRY NewEntry = NULL;
+
+	if(ListHead->Next.Next)
+	{
+		NewEntry = ListHead->Next.Next;
+		ListHead->Next.Next = NewEntry->Next;
+	}
+
+	return NewEntry;
+}
+
+void WINAPI InitializeSListHead_kex(PSLIST_HEADER ListHead)
+{
+	RtlZeroMemory(ListHead, sizeof(SLIST_HEADER));
+}
+
+PSLIST_ENTRY WINAPI InterlockedPushEntrySList_kex(PSLIST_HEADER ListHead, PSLIST_ENTRY ListEntry)
+{
+	PVOID PrevValue;
+
+	do
+	{
+		PrevValue = ListHead->Next.Next;
+		ListEntry->Next = (PSINGLE_LIST_ENTRY)PrevValue;
+	}
+	while (InterlockedCompareExchangePointer((PVOID volatile*)&ListHead->Next.Next,
+											ListEntry,
+											PrevValue) != PrevValue);
+
+	return (PSLIST_ENTRY)PrevValue;
+}
+
+/* Wrappers From KernelEx Ends */
+
 static size_t
 bytes_per_frame(cubeb_stream_params params)
 {
@@ -208,7 +255,7 @@ winmm_buffer_thread(void * user_ptr)
     /* Process work items in batches so that a single stream can't
        starve the others by continuously adding new work to the top of
        the work item stack. */
-    item = InterlockedFlushSList(ctx->work);
+    item = InterlockedFlushSList_kex(ctx->work);
     while (item != NULL) {
       PSLIST_ENTRY tmp = item;
       winmm_refill_stream(((struct cubeb_stream_item *) tmp)->stream);
@@ -237,7 +284,7 @@ winmm_buffer_callback(HWAVEOUT waveout, UINT msg, DWORD_PTR user_ptr, DWORD_PTR 
   item = _aligned_malloc(sizeof(struct cubeb_stream_item), MEMORY_ALLOCATION_ALIGNMENT);
   XASSERT(item);
   item->stream = stm;
-  InterlockedPushEntrySList(stm->context->work, &item->head);
+  InterlockedPushEntrySList_kex(stm->context->work, &item->head);
 
   SetEvent(stm->context->event);
 }
@@ -287,7 +334,7 @@ winmm_init(cubeb ** context, char const * context_name)
 
   ctx->work = _aligned_malloc(sizeof(*ctx->work), MEMORY_ALLOCATION_ALIGNMENT);
   XASSERT(ctx->work);
-  InitializeSListHead(ctx->work);
+  InitializeSListHead_kex(ctx->work);
 
   ctx->event = CreateEvent(NULL, FALSE, FALSE, NULL);
   if (!ctx->event) {
@@ -325,7 +372,7 @@ winmm_destroy(cubeb * ctx)
   DWORD r;
 
   XASSERT(ctx->active_streams == 0);
-  XASSERT(!InterlockedPopEntrySList(ctx->work));
+  XASSERT(!InterlockedPopEntrySList_kex(ctx->work));
 
   DeleteCriticalSection(&ctx->lock);
 

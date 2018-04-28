@@ -26,11 +26,14 @@ bool IMEHandler::sPluginHasFocus = false;
 IMEHandler::SetInputScopesFunc IMEHandler::sSetInputScopes = nullptr;
 #endif // #ifdef NS_ENABLE_TSF
 
+typedef BOOL (WINAPI *GetModuleHandleExProc)(DWORD dwFlags, LPCWSTR lpModuleName, HMODULE* phModule);
+
 // static
 void
 IMEHandler::Initialize()
 {
 #ifdef NS_ENABLE_TSF
+  GetModuleHandleExProc GetModuleHandleExPtr = (GetModuleHandleExProc) GetProcAddress(GetModuleHandle(L"kernel32.dll"),"GetModuleHandleExW");
   nsTextStore::Initialize();
   sIsInTSFMode = nsTextStore::IsInTSFMode();
   if (!sIsInTSFMode) {
@@ -38,7 +41,7 @@ IMEHandler::Initialize()
     // to enable at least InputScope. Use GET_MODULE_HANDLE_EX_FLAG_PIN to
     // ensure that msctf.dll will not be unloaded.
     HMODULE module = nullptr;
-    if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN, L"msctf.dll",
+    if (GetModuleHandleExPtr && GetModuleHandleExPtr(GET_MODULE_HANDLE_EX_FLAG_PIN, L"msctf.dll",
                            &module)) {
       sSetInputScopes = reinterpret_cast<SetInputScopesFunc>(
         GetProcAddress(module, "SetInputScopes"));

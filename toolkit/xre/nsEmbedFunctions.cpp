@@ -242,6 +242,8 @@ SetTaskbarGroupId(const nsString& aId)
     if (hDLL)
         ::FreeLibrary(hDLL);
 }
+
+typedef BOOL (WINAPI* AttachConsoleProc)(DWORD dwProcessId);
 #endif
 
 nsresult
@@ -254,13 +256,14 @@ XRE_InitChildProcess(int aArgc,
   NS_ENSURE_ARG_POINTER(aArgv[0]);
 
 #if defined(XP_WIN)
+  AttachConsoleProc AttachConsolePtr = (AttachConsoleProc) GetProcAddress(GetModuleHandle(L"kernel32.dll"),"AttachConsole");
   // From the --attach-console support in nsNativeAppSupportWin.cpp, but
   // here we are a content child process, so we always attempt to attach
   // to the parent's (ie, the browser's) console.
   // Try to attach console to the parent process.
   // It will succeed when the parent process is a command line,
   // so that stdio will be displayed in it.
-  if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+  if (AttachConsolePtr && AttachConsolePtr(ATTACH_PARENT_PROCESS)) {
     // Change std handles to refer to new console handles.
     // Before doing so, ensure that stdout/stderr haven't been
     // redirected to a valid file

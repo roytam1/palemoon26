@@ -330,6 +330,8 @@ NS_INTERFACE_MAP_END_INHERITING(nsNativeAppSupportBase)
 NS_IMPL_ADDREF_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 NS_IMPL_RELEASE_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 
+typedef BOOL (WINAPI* AttachConsoleProc)(DWORD dwProcessId);
+
 void
 nsNativeAppSupportWin::CheckConsole() {
     for ( int i = 1; i < gArgc; i++ ) {
@@ -395,10 +397,11 @@ nsNativeAppSupportWin::CheckConsole() {
         } else if ( strcmp( "-attach-console", gArgv[i] ) == 0
                     ||
                     strcmp( "/attach-console", gArgv[i] ) == 0 ) {
+            AttachConsoleProc AttachConsolePtr = (AttachConsoleProc) GetProcAddress(GetModuleHandle(L"kernel32.dll"),"AttachConsole");
             // Try to attach console to the parent process.
             // It will succeed when the parent process is a command line,
             // so that stdio will be displayed in it.
-            if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+            if (AttachConsolePtr && AttachConsolePtr(ATTACH_PARENT_PROCESS)) {
                 // Change std handles to refer to new console handles.
                 // Before doing so, ensure that stdout/stderr haven't been
                 // redirected to a valid file

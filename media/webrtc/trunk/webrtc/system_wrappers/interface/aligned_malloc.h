@@ -36,6 +36,12 @@ void* AlignedMalloc(size_t size, size_t alignment);
 // De-allocates memory created using the AlignedMalloc() API.
 void AlignedFree(void* mem_block);
 
+PSLIST_ENTRY InterlockedFlushSList_kex(PSLIST_HEADER ListHead);
+PSLIST_ENTRY InterlockedPopEntrySList_kex(PSLIST_HEADER ListHead);
+void InitializeSListHead_kex(PSLIST_HEADER ListHead);
+PSLIST_ENTRY InterlockedPushEntrySList_kex(PSLIST_HEADER ListHead, PSLIST_ENTRY ListEntry);
+
+
 // Templated versions to facilitate usage of aligned malloc without casting
 // to and from void*.
 template<typename T>

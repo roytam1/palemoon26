@@ -1133,6 +1133,8 @@ MouseScrollHandler::Device::Elantech::GetDriverMajorVersion()
   return 0;
 }
 
+typedef DWORD (WINAPI *GetProcessImageFileNameProc)(HANDLE, LPWSTR, DWORD);
+
 /* static */
 bool
 MouseScrollHandler::Device::Elantech::IsHelperWindow(HWND aWnd)
@@ -1142,6 +1144,14 @@ MouseScrollHandler::Device::Elantech::IsHelperWindow(HWND aWnd)
 
   const PRUnichar* filenameSuffix = L"\\etdctrl.exe";
   const int filenameSuffixLength = 12;
+
+  static HMODULE hPSAPI = ::LoadLibraryW(L"psapi.dll");
+  static GetProcessImageFileNameProc pGetProcessImageFileName =
+    reinterpret_cast<GetProcessImageFileNameProc>(::GetProcAddress(hPSAPI, "GetProcessImageFileNameW"));
+
+  if (!pGetProcessImageFileName) {
+    return false;
+  }
 
   DWORD pid;
   ::GetWindowThreadProcessId(aWnd, &pid);
@@ -1153,7 +1163,7 @@ MouseScrollHandler::Device::Elantech::IsHelperWindow(HWND aWnd)
 
   bool result = false;
   PRUnichar path[256] = {L'\0'};
-  if (::GetProcessImageFileNameW(hProcess, path, ArrayLength(path))) {
+  if (pGetProcessImageFileName(hProcess, path, ArrayLength(path))) {
     int pathLength = lstrlenW(path);
     if (pathLength >= filenameSuffixLength) {
       if (lstrcmpiW(path + pathLength - filenameSuffixLength,

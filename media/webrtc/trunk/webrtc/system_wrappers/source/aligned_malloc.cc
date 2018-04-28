@@ -101,4 +101,51 @@ void AlignedFree(void* mem_block) {
   free(memory_start);
 }
 
+/* Wrappers From KernelEx */
+
+PSLIST_ENTRY InterlockedFlushSList_kex(PSLIST_HEADER ListHead)
+{
+	PSLIST_ENTRY NewEntry = NULL;
+
+	/* UNIMPLEMENTED*/
+
+	return NewEntry;
+}
+
+PSLIST_ENTRY InterlockedPopEntrySList_kex(PSLIST_HEADER ListHead)
+{
+	PSLIST_ENTRY NewEntry = NULL;
+
+	if(ListHead->Next.Next)
+	{
+		NewEntry = ListHead->Next.Next;
+		ListHead->Next.Next = NewEntry->Next;
+	}
+
+	return NewEntry;
+}
+
+void InitializeSListHead_kex(PSLIST_HEADER ListHead)
+{
+	RtlZeroMemory(ListHead, sizeof(SLIST_HEADER));
+}
+
+PSLIST_ENTRY InterlockedPushEntrySList_kex(PSLIST_HEADER ListHead, PSLIST_ENTRY ListEntry)
+{
+	PVOID PrevValue;
+
+	do
+	{
+		PrevValue = ListHead->Next.Next;
+		ListEntry->Next = (PSINGLE_LIST_ENTRY)PrevValue;
+	}
+	while (InterlockedCompareExchangePointer((PVOID volatile*)&ListHead->Next.Next,
+											ListEntry,
+											PrevValue) != PrevValue);
+
+	return (PSLIST_ENTRY)PrevValue;
+}
+
+/* Wrappers From KernelEx Ends */
+
 }  // namespace webrtc
