@@ -12,9 +12,10 @@
 namespace {
 
 uint32_t RandUint32() {
-  uint32_t number;
+  /*uint32_t number;
   CHECK(rand_s(&number) == 0);
-  return number;
+  return number;*/
+  return rand();
 }
 
 }  // namespace

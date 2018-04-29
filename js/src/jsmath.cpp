@@ -11,6 +11,7 @@
 #if defined(XP_WIN)
 /* _CRT_RAND_S must be #defined before #including stdlib.h to get rand_s(). */
 #define _CRT_RAND_S
+#include <windows.h>
 #endif
 
 #include "jsmath.h"
@@ -640,6 +641,95 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
 # pragma optimize("", on)
 #endif
 
+#if defined(XP_WIN)
+/*
+ * CryptoAPI requires Windows NT 4.0 or Windows 95 OSR2 and later.
+ * Until we drop support for Windows 95, we need to emulate some
+ * definitions and declarations in <wincrypt.h> and look up the
+ * functions in advapi32.dll at run time.
+ */
+
+#ifndef WIN64
+typedef unsigned long HCRYPTPROV;
+#endif
+
+#define CRYPT_VERIFYCONTEXT 0xF0000000
+
+#define PROV_RSA_FULL 1
+
+typedef BOOL
+(WINAPI *CryptAcquireContextAFn)(
+    HCRYPTPROV *phProv,
+    LPCSTR pszContainer,
+    LPCSTR pszProvider,
+    DWORD dwProvType,
+    DWORD dwFlags);
+
+typedef BOOL
+(WINAPI *CryptReleaseContextFn)(
+    HCRYPTPROV hProv,
+    DWORD dwFlags);
+
+typedef BOOL
+(WINAPI *CryptGenRandomFn)(
+    HCRYPTPROV hProv,
+    DWORD dwLen,
+    BYTE *pbBuffer);
+
+/*
+ * Windows XP and Windows Server 2003 and later have RtlGenRandom,
+ * which must be looked up by the name SystemFunction036.
+ */
+typedef BOOLEAN
+(APIENTRY *RtlGenRandomFn)(
+    PVOID RandomBuffer,
+    ULONG RandomBufferLength);
+
+size_t RNG_SystemRNG(BYTE *dest, size_t maxLen)
+{
+    HMODULE hModule;
+    RtlGenRandomFn pRtlGenRandom;
+    CryptAcquireContextAFn pCryptAcquireContextA;
+    CryptReleaseContextFn pCryptReleaseContext;
+    CryptGenRandomFn pCryptGenRandom;
+    HCRYPTPROV hCryptProv;
+    size_t bytes = 0;
+
+    hModule = LoadLibrary("advapi32.dll");
+    if (hModule == NULL) {
+	return bytes;
+    }
+    pRtlGenRandom = (RtlGenRandomFn)
+	GetProcAddress(hModule, "SystemFunction036");
+
+    if (pRtlGenRandom) {
+	if (pRtlGenRandom(dest, maxLen)) {
+	    bytes = maxLen;
+	    goto done;
+	}
+    }
+    pCryptAcquireContextA = (CryptAcquireContextAFn)
+	GetProcAddress(hModule, "CryptAcquireContextA");
+    pCryptReleaseContext = (CryptReleaseContextFn)
+	GetProcAddress(hModule, "CryptReleaseContext");
+    pCryptGenRandom = (CryptGenRandomFn)
+	GetProcAddress(hModule, "CryptGenRandom");
+    if (!pCryptAcquireContextA || !pCryptReleaseContext || !pCryptGenRandom) {
+	return bytes;
+    }
+    if (pCryptAcquireContextA(&hCryptProv, NULL, NULL,
+	PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+	if (pCryptGenRandom(hCryptProv, maxLen, dest)) {
+	    bytes = maxLen;
+	}
+	pCryptReleaseContext(hCryptProv, 0);
+    }
+done:
+    FreeLibrary(hModule);
+    return bytes;
+}
+#endif
+
 static uint64_t
 random_generateSeed()
 {
@@ -655,7 +745,7 @@ random_generateSeed()
      * Our PRNG only uses 48 bits, so calling rand_s() twice to get 64 bits is
      * probably overkill.
      */
-    rand_s(&seed.u32[0]);
+    RNG_SystemRNG((BYTE *)&seed.u32[0],sizeof(uint32_t));
 #elif defined(XP_UNIX)
     /*
      * In the unlikely event we can't read /dev/urandom, there's not much we can
