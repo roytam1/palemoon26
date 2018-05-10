@@ -187,9 +187,13 @@ JSCompartment::putWrapper(const CrossCompartmentKey &wrapped, const js::Value &w
     return crossCompartmentWrappers.put(wrapped, wrapper);
 }
 
+#ifdef _MSC_VER
+#pragma optimize("", off)
+#endif
 bool
 JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingArg)
 {
+    if(!this) return false;
     JS_ASSERT(cx->compartment() == this);
     JS_ASSERT(this != rt->atomsCompartment);
     JS_ASSERT_IF(existingArg, existingArg->compartment() == cx->compartment());
@@ -210,7 +214,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
         JSString *str = vp.toString();
 
         /* If the string is already in this compartment, we are done. */
-        if (str->zone() == zone())
+        if (&zone_ && str->zone() == zone())
             return true;
 
         /* If the string is an atom, we don't have to copy. */
@@ -336,6 +340,9 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
     vp.setObject(*wrapper);
     return putWrapper(key, vp);
 }
+#ifdef _MSC_VER
+#pragma optimize("", on)
+#endif
 
 bool
 JSCompartment::wrap(JSContext *cx, JSString **strp)
