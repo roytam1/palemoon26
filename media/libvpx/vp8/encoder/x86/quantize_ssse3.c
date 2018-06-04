@@ -8,6 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "./vpx_config.h"
 #include "./vp8_rtcd.h"
 
 #if HAVE_SSE3
