@@ -11,6 +11,7 @@
 
 #if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #endif
 
 #include <windows.h>
@@ -25,6 +26,10 @@
 
 #if defined(max)
 #undef max
+#endif
+
+#if defined(_MSC_VER) && _MSC_VER > 1400
+#include <algorithm>
 #endif
 
 #endif   // COMMON_SYSTEM_H

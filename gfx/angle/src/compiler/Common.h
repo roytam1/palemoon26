@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 
+#if defined(_MSC_VER) && _MSC_VER > 1400
+#include <algorithm>
+#endif
+
 #include "compiler/PoolAlloc.h"
 
 // We need two pieces of information to report errors/warnings - string and
