@@ -1906,7 +1906,7 @@ RENDER_AGAIN:
     // Draw toolbar separator lines above all toolbars except the first one.
     // The lines are part of the Rebar theme, which is loaded for NS_THEME_TOOLBOX.
     theme = GetTheme(NS_THEME_TOOLBOX);
-    if (!theme)
+    if (!theme || !nsUXThemeData::drawThemeEdge)
       return NS_ERROR_FAILURE;
 
     widgetRect.bottom = widgetRect.top + TB_SEPARATOR_HEIGHT;
