@@ -44,8 +44,30 @@ const GUID KSDATAFORMAT_SUBTYPE_PCM =
 const GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT =
 { 0x00000003, 0x0000, 0x0010, { 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 } };
 
+/* Portable implementation From MSPS */
+
+typedef struct _MSPS_SLIST_ENTRY {
+    // Want a volatile pointer to non-volatile data so place after all type info
+    struct _MSPS_SLIST_ENTRY * volatile Next;
+} MSPS_SLIST_ENTRY, *MSPS_PSLIST_ENTRY;
+
+typedef union _MSPS_SLIST_HEADER {
+    // Provides 8 byte alignment for 32-bit builds.  Technically, not needed for
+    // current implementation below but leaving for future use.
+    ULONGLONG Alignment;
+    struct {
+        // Want a volatile pointer to non-volatile data so place after all type info
+        MSPS_PSLIST_ENTRY volatile Head;
+        volatile LONG Depth;
+        volatile LONG Mutex;
+    } List;
+} MSPS_SLIST_HEADER, *MSPS_PSLIST_HEADER;
+
+/* Portable implementation From MSPS */
+
+
 struct cubeb_stream_item {
-  SLIST_ENTRY head;
+  MSPS_SLIST_ENTRY head;
   cubeb_stream * stream;
 };
 
@@ -56,7 +78,7 @@ struct cubeb {
   HANDLE event;
   HANDLE thread;
   int shutdown;
-  PSLIST_HEADER work;
+  MSPS_PSLIST_HEADER work;
   CRITICAL_SECTION lock;
   unsigned int active_streams;
   unsigned int minimum_latency;
@@ -81,52 +103,84 @@ struct cubeb_stream {
   float soft_volume;
 };
 
-/* Wrappers From KernelEx */
+/* Portable implementation From MSPS */
 
-PSLIST_ENTRY WINAPI InterlockedFlushSList_kex(PSLIST_HEADER ListHead)
+void WINAPI InitializeSListHead_kex(MSPS_PSLIST_HEADER ListHeader)
 {
-	PSLIST_ENTRY NewEntry = NULL;
+    XASSERT( ListHeader != NULL );
 
-	/* UNIMPLEMENTED*/
-
-	return NewEntry;
+    ListHeader->List.Head = NULL;
+    ListHeader->List.Depth = 0;
+    ListHeader->List.Mutex = 0;
 }
 
-PSLIST_ENTRY WINAPI InterlockedPopEntrySList_kex(PSLIST_HEADER ListHead)
+MSPS_PSLIST_ENTRY WINAPI InterlockedPopEntrySList_kex(MSPS_PSLIST_HEADER ListHeader)
 {
-	PSLIST_ENTRY NewEntry = NULL;
+    MSPS_PSLIST_ENTRY oldHead = ListHeader->List.Head;
+    if ( oldHead == NULL ) {
+        return NULL;
+    }
 
-	if(ListHead->Next.Next)
-	{
-		NewEntry = ListHead->Next.Next;
-		ListHead->Next.Next = NewEntry->Next;
-	}
+    while ( ListHeader->List.Mutex != 0 || InterlockedCompareExchange( &ListHeader->List.Mutex, 1, 0 ) != 0 ) {
+        // Spin until 'mutex' is free
+    }
 
-	return NewEntry;
+    // We have the 'mutex' so proceed with update
+    oldHead = ListHeader->List.Head;
+    if ( oldHead != NULL ) {
+        ListHeader->List.Head = oldHead->Next;
+        --(ListHeader->List.Depth);
+        XASSERT( ListHeader->List.Depth <= 0 );
+    }
+
+    // Free the 'mutex'
+    ListHeader->List.Mutex = 0;
+
+    return oldHead;
 }
 
-void WINAPI InitializeSListHead_kex(PSLIST_HEADER ListHead)
+MSPS_PSLIST_ENTRY WINAPI InterlockedPushEntrySList_kex(MSPS_PSLIST_HEADER ListHeader, MSPS_PSLIST_ENTRY ListEntry)
 {
-	RtlZeroMemory(ListHead, sizeof(SLIST_HEADER));
+    MSPS_PSLIST_ENTRY oldHead;
+    XASSERT( ListHeader != NULL );
+
+    while ( ListHeader->List.Mutex != 0 || InterlockedCompareExchange( &ListHeader->List.Mutex, 1, 0 ) != 0 ) {
+        // Spin until 'mutex' is free
+    }
+
+    // We have the 'mutex' so proceed with update
+    oldHead = ListHeader->List.Head;
+    ListEntry->Next = oldHead;
+    ListHeader->List.Head = ListEntry;
+    ++(ListHeader->List.Depth);
+
+    // Free the 'mutex'
+    ListHeader->List.Mutex = 0;
+
+    return oldHead;
 }
 
-PSLIST_ENTRY WINAPI InterlockedPushEntrySList_kex(PSLIST_HEADER ListHead, PSLIST_ENTRY ListEntry)
+MSPS_PSLIST_ENTRY WINAPI InterlockedFlushSList_kex(MSPS_PSLIST_HEADER ListHeader)
 {
-	PVOID PrevValue;
+    MSPS_PSLIST_ENTRY oldHead;
+    XASSERT( ListHeader != NULL );
 
-	do
-	{
-		PrevValue = ListHead->Next.Next;
-		ListEntry->Next = (PSINGLE_LIST_ENTRY)PrevValue;
-	}
-	while (InterlockedCompareExchangePointer((PVOID volatile*)&ListHead->Next.Next,
-											ListEntry,
-											PrevValue) != PrevValue);
+    while ( ListHeader->List.Mutex != 0 || InterlockedCompareExchange( &ListHeader->List.Mutex, 1, 0 ) != 0 ) {
+        // Spin until 'mutex' is free
+    }
 
-	return (PSLIST_ENTRY)PrevValue;
+    // We have the 'mutex' so proceed with update
+    oldHead = ListHeader->List.Head;
+    ListHeader->List.Head = NULL;
+    ListHeader->List.Depth = 0;
+
+    // Free the 'mutex'
+    ListHeader->List.Mutex = 0;
+
+    return oldHead;
 }
 
-/* Wrappers From KernelEx Ends */
+/* Portable implementation From MSPS */
 
 static size_t
 bytes_per_frame(cubeb_stream_params params)
@@ -247,7 +301,7 @@ winmm_buffer_thread(void * user_ptr)
 
   for (;;) {
     DWORD r;
-    PSLIST_ENTRY item;
+    MSPS_PSLIST_ENTRY item;
 
     r = WaitForSingleObject(ctx->event, INFINITE);
     XASSERT(r == WAIT_OBJECT_0);
@@ -257,7 +311,7 @@ winmm_buffer_thread(void * user_ptr)
        the work item stack. */
     item = InterlockedFlushSList_kex(ctx->work);
     while (item != NULL) {
-      PSLIST_ENTRY tmp = item;
+      MSPS_PSLIST_ENTRY tmp = item;
       winmm_refill_stream(((struct cubeb_stream_item *) tmp)->stream);
       item = item->Next;
       _aligned_free(tmp);

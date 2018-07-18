@@ -37,7 +37,7 @@ template<class MemoryType>
 struct MemoryPoolItem
 {
     // Atomic single linked list entry header.
-    SLIST_ENTRY itemEntry;
+    MSPS_SLIST_ENTRY itemEntry;
     // Atomic single linked list payload.
     MemoryPoolItemPayload<MemoryType>* payload;
 };
@@ -64,7 +64,7 @@ private:
     // http://msdn.microsoft.com/en-us/library/ms686962(VS.85).aspx
 
     // Atomic single linked list head.
-    PSLIST_HEADER _pListHead;
+    MSPS_PSLIST_HEADER _pListHead;
 
     Atomic32 _createdMemory;
     Atomic32 _outstandingMemory;
@@ -96,7 +96,7 @@ MemoryPoolImpl<MemoryType>::~MemoryPoolImpl()
 template<class MemoryType>
 WebRtc_Word32 MemoryPoolImpl<MemoryType>::PopMemory(MemoryType*& memory)
 {
-    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
+    MSPS_PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
     if(pListEntry == NULL)
     {
         MemoryPoolItem<MemoryType>* item = CreateMemory();
@@ -146,7 +146,7 @@ WebRtc_Word32 MemoryPoolImpl<MemoryType>::PushMemory(MemoryType*& memory)
 template<class MemoryType>
 bool MemoryPoolImpl<MemoryType>::Initialize()
 {
-    _pListHead = (PSLIST_HEADER)AlignedMalloc(sizeof(SLIST_HEADER),
+    _pListHead = (MSPS_PSLIST_HEADER)AlignedMalloc(sizeof(MSPS_SLIST_HEADER),
                                               MEMORY_ALLOCATION_ALIGNMENT);
     if(_pListHead == NULL)
     {
@@ -160,7 +160,7 @@ template<class MemoryType>
 WebRtc_Word32 MemoryPoolImpl<MemoryType>::Terminate()
 {
     WebRtc_Word32 itemsFreed = 0;
-    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
+    MSPS_PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
     while(pListEntry != NULL)
     {
         MemoryPoolItem<MemoryType>* item = ((MemoryPoolItem<MemoryType>*)pListEntry);

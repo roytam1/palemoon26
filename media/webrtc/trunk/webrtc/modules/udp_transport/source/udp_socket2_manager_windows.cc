@@ -455,7 +455,7 @@ WebRtc_Word32 IoContextPool::Init(WebRtc_UWord32 /*increaseSize*/)
         return 0;
     }
 
-    _pListHead = (PSLIST_HEADER)AlignedMalloc(sizeof(SLIST_HEADER),
+    _pListHead = (MSPS_PSLIST_HEADER)AlignedMalloc(sizeof(MSPS_SLIST_HEADER),
                                               MEMORY_ALLOCATION_ALIGNMENT);
     if(_pListHead == NULL)
     {
@@ -473,7 +473,7 @@ PerIoContext* IoContextPool::PopIoContext()
         return NULL;
     }
 
-    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
+    MSPS_PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
     if(pListEntry == NULL)
     {
         IoContextPoolItem* item = (IoContextPoolItem*)
@@ -530,7 +530,7 @@ WebRtc_Word32 IoContextPool::Free()
     }
 
     WebRtc_Word32 itemsFreed = 0;
-    PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
+    MSPS_PSLIST_ENTRY pListEntry = InterlockedPopEntrySList_kex(_pListHead);
     while(pListEntry != NULL)
     {
         IoContextPoolItem* item = ((IoContextPoolItem*)pListEntry);
