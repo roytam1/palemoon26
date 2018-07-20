@@ -100,6 +100,10 @@
 @BINPATH@/msvcp110.dll
 @BINPATH@/msvcr110.dll
 @BINPATH@/vcomp110.dll
+#elif MOZ_MSVC_REDIST == 1800
+@BINPATH@/msvcp120.dll
+@BINPATH@/msvcr120.dll
+@BINPATH@/vcomp120.dll
 #endif
 #endif
 #endif
