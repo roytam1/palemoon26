@@ -701,6 +701,11 @@ xpicleanup@BIN_SUFFIX@
     msvcr110.dll
     vcomp110.dll
   #endif
+  #if MOZ_MSVC_REDIST != 1800
+    msvcp120.dll
+    msvcr120.dll
+    vcomp120.dll
+  #endif
   plugins/npnul32.dll
 #endif
 @DLL_PREFIX@xpcom_core@DLL_SUFFIX@
