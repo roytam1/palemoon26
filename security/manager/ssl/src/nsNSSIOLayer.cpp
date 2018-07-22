@@ -7,6 +7,8 @@
 #include "nsNSSComponent.h"
 #include "nsNSSIOLayer.h"
 
+#include "mozilla/DebugOnly.h"
+
 #include "prlog.h"
 #include "prnetdb.h"
 #include "nsIPrefService.h"
@@ -414,7 +416,7 @@ void nsNSSSocketInfo::GetPreviousCert(nsIX509Cert** _result)
 
 #ifndef NSS_NO_LIBPKIX
   RefPtr<PreviousCertRunnable> runnable(new PreviousCertRunnable(mCallbacks));
-  nsresult rv = runnable->DispatchToMainThreadAndWait();
+  DebugOnly<nsresult> rv = runnable->DispatchToMainThreadAndWait();
   NS_ASSERTION(NS_SUCCEEDED(rv), "runnable->DispatchToMainThreadAndWait() failed");
   runnable->mPreviousCert.forget(_result);
 #endif
