@@ -4,6 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsAnimationManager.h"
+
+#include "mozilla/MemoryReporting.h"
+
 #include "nsPresContext.h"
 #include "nsRuleProcessorData.h"
 #include "nsStyleSet.h"
@@ -518,7 +521,7 @@ nsAnimationManager::RulesMatching(XULTreeRuleProcessorData* aData)
 #endif
 
 /* virtual */ size_t
-nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+nsAnimationManager::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
 {
   return CommonAnimationManager::SizeOfExcludingThis(aMallocSizeOf);
 
@@ -528,7 +531,7 @@ nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 }
 
 /* virtual */ size_t
-nsAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+nsAnimationManager::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }

@@ -23,6 +23,7 @@
 #include "nsAutoPtr.h"
 #include "nsIProgrammingLanguage.h"
 #include "nsVoidArray.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/CheckedInt.h"
 #include <algorithm>
@@ -3182,7 +3183,7 @@ nsStandardURL::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
 //----------------------------------------------------------------------------
 
 size_t
-nsStandardURL::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+nsStandardURL::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   return mSpec.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
          mOriginCharset.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
@@ -3195,6 +3196,6 @@ nsStandardURL::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 }
 
 size_t
-nsStandardURL::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+nsStandardURL::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }

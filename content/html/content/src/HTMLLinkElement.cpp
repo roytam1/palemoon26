@@ -5,6 +5,7 @@
 
 #include "mozilla/dom/HTMLLinkElement.h"
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/HTMLLinkElementBinding.h"
 #include "base/compiler_specific.h"
 #include "nsGenericHTMLElement.h"
@@ -389,7 +390,7 @@ HTMLLinkElement::IntrinsicState() const
 }
 
 size_t
-HTMLLinkElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+HTMLLinkElement::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
          Link::SizeOfExcludingThis(aMallocSizeOf);

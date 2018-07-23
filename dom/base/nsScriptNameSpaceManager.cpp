@@ -27,6 +27,7 @@
 #include "nsCRT.h"
 #include "nsIObserverService.h"
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 
@@ -43,7 +44,7 @@ public:
   nsString mKey;
   nsGlobalNameStruct mGlobalName;
 
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) {
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) {
     // Measurement of the following members may be added later if DMD finds it
     // is worthwhile:
     // - mGlobalName
@@ -810,7 +811,7 @@ nsScriptNameSpaceManager::EnumerateGlobalNames(GlobalNameEnumerator aEnumerator,
 }
 
 static size_t
-SizeOfEntryExcludingThis(PLDHashEntryHdr *aHdr, nsMallocSizeOfFun aMallocSizeOf,
+SizeOfEntryExcludingThis(PLDHashEntryHdr *aHdr, MallocSizeOf aMallocSizeOf,
                          void *aArg)
 {
     GlobalNameMapEntry* entry = static_cast<GlobalNameMapEntry*>(aHdr);
@@ -818,7 +819,7 @@ SizeOfEntryExcludingThis(PLDHashEntryHdr *aHdr, nsMallocSizeOfFun aMallocSizeOf,
 }
 
 size_t
-nsScriptNameSpaceManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
+nsScriptNameSpaceManager::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 {
   size_t n = 0;
   n += PL_DHashTableSizeOfExcludingThis(&mGlobalNames,

@@ -46,6 +46,7 @@
 #include "nsISimpleEnumerator.h"
 
 #include "nsThreadUtils.h"
+#include "mozilla/MemoryReporting.h"
 
 static const char DISK_CACHE_DEVICE_ID[] = { "disk" };
 using namespace mozilla;
@@ -1175,7 +1176,7 @@ nsDiskCacheDevice::SetMaxEntrySize(int32_t maxSizeInKilobytes)
 }
 
 size_t
-nsDiskCacheDevice::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
+nsDiskCacheDevice::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 {
     size_t usage = aMallocSizeOf(this);
 

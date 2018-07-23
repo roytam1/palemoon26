@@ -6,6 +6,7 @@
 
 // IWYU pragma: private, include "nsAString.h"
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/CheckedInt.h"
 
 #ifndef MOZILLA_INTERNAL_API
@@ -628,14 +629,14 @@ class nsTSubstring_CharT
           mFlags(flags) {}
 #endif /* DEBUG || FORCE_BUILD_REFCNT_LOGGING */
 
-      size_t SizeOfExcludingThisMustBeUnshared(nsMallocSizeOfFun mallocSizeOf)
+      size_t SizeOfExcludingThisMustBeUnshared(mozilla::MallocSizeOf mallocSizeOf)
         const;
-      size_t SizeOfIncludingThisMustBeUnshared(nsMallocSizeOfFun mallocSizeOf)
+      size_t SizeOfIncludingThisMustBeUnshared(mozilla::MallocSizeOf mallocSizeOf)
         const;
 
-      size_t SizeOfExcludingThisIfUnshared(nsMallocSizeOfFun mallocSizeOf)
+      size_t SizeOfExcludingThisIfUnshared(mozilla::MallocSizeOf mallocSizeOf)
         const;
-      size_t SizeOfIncludingThisIfUnshared(nsMallocSizeOfFun mallocSizeOf)
+      size_t SizeOfIncludingThisIfUnshared(mozilla::MallocSizeOf mallocSizeOf)
         const;
 
         /**
@@ -644,9 +645,9 @@ class nsTSubstring_CharT
          * you do use them, please explain clearly in a comment why it's safe
          * and won't lead to double-counting.
          */
-      size_t SizeOfExcludingThisEvenIfShared(nsMallocSizeOfFun mallocSizeOf)
+      size_t SizeOfExcludingThisEvenIfShared(mozilla::MallocSizeOf mallocSizeOf)
         const;
-      size_t SizeOfIncludingThisEvenIfShared(nsMallocSizeOfFun mallocSizeOf)
+      size_t SizeOfIncludingThisEvenIfShared(mozilla::MallocSizeOf mallocSizeOf)
         const;
 
     protected:

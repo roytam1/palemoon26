@@ -11,6 +11,7 @@
 
 #include <string.h>
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 #include "jstypes.h"
@@ -5424,7 +5425,7 @@ js_DumpBacktrace(JSContext *cx)
     fprintf(stdout, "%s", sprinter.string());
 }
 void
-JSObject::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, JS::ObjectsExtraSizes *sizes)
+JSObject::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ObjectsExtraSizes *sizes)
 {
     if (hasDynamicSlots())
         sizes->slots = mallocSizeOf(slots);

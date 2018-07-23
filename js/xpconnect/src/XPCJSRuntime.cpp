@@ -6,6 +6,7 @@
 
 /* Per JSRuntime object */
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 #include "xpcprivate.h"
@@ -1121,7 +1122,7 @@ XPCJSRuntime::CTypesActivityCallback(JSContext *cx, js::CTypesActivityType type)
 }
 
 size_t
-XPCJSRuntime::SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf)
+XPCJSRuntime::SizeOfIncludingThis(MallocSizeOf mallocSizeOf)
 {
     size_t n = 0;
     n += mallocSizeOf(this);

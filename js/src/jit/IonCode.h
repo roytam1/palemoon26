@@ -7,6 +7,7 @@
 #ifndef jit_IonCode_h
 #define jit_IonCode_h
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
 
 #include "IonTypes.h"
@@ -435,7 +436,7 @@ struct IonScript
     size_t callTargetEntries() const {
         return callTargetEntries_;
     }
-    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
         return mallocSizeOf(this);
     }
     EncapsulatedValue &getConstant(size_t index) {

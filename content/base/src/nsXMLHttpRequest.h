@@ -39,6 +39,7 @@
 #include "nsIInputStream.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/XMLHttpRequestBinding.h"
@@ -229,7 +230,7 @@ public:
 
   // nsISizeOfEventTarget
   virtual size_t
-    SizeOfEventTargetIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+    SizeOfEventTargetIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsXHREventTarget)
 

@@ -11,6 +11,7 @@
 #include "xpcpublic.h"
 #include "nsIDOMEventListener.h"
 #include "nsIAtom.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/EventHandlerBinding.h"
 
 #define NS_IJSEVENTLISTENER_IID \
@@ -241,7 +242,7 @@ public:
     mHandler.SetHandler(aHandler);
   }
 
-  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   {
     return 0;
 
@@ -257,7 +258,7 @@ public:
     // - mEventName: shared with others
   }
 
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
