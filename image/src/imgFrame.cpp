@@ -20,6 +20,7 @@ static bool gDisableOptimize = false;
 #include "GoannaProfiler.h"
 #include "mozilla/Likely.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/MemoryReporting.h"
 
 #if defined(XP_WIN)
 
@@ -798,7 +799,7 @@ void imgFrame::SetCompositingFailed(bool val)
 // |aMallocSizeOf|.  If that fails (because the platform doesn't support it) or
 // it's non-heap memory, we fall back to computing the size analytically.
 size_t
-imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation, nsMallocSizeOfFun aMallocSizeOf) const
+imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation, mozilla::MallocSizeOf aMallocSizeOf) const
 {
   // aMallocSizeOf is only used if aLocation==MEMORY_IN_PROCESS_HEAP.  It
   // should be NULL otherwise.

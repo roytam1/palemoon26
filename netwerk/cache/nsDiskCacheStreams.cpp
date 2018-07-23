@@ -12,6 +12,7 @@
 #include "nsCacheService.h"
 #include "mozilla/FileUtils.h"
 #include "nsThreadUtils.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
 #include <algorithm>
 
@@ -599,7 +600,7 @@ nsDiskCacheStreamIO::DeleteBuffer()
 }
 
 size_t
-nsDiskCacheStreamIO::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
+nsDiskCacheStreamIO::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
 {
     size_t usage = aMallocSizeOf(this);
 

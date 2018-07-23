@@ -27,6 +27,8 @@
 #include "nsISimpleEnumerator.h"
 #include "nsIWindowsRegKey.h"
 
+#include "mozilla/MemoryReporting.h"
+
 #include <usp10.h>
 #include <t2embapi.h>
 
@@ -442,7 +444,7 @@ GDIFontEntry::CreateFontEntry(const nsAString& aName,
 }
 
 void
-GDIFontEntry::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+GDIFontEntry::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
                                   FontListSizes*    aSizes) const
 {
     aSizes->mFontListSize += aMallocSizeOf(this);
@@ -1062,7 +1064,7 @@ gfxGDIFontList::ResolveFontName(const nsAString& aFontName, nsAString& aResolved
 }
 
 void
-gfxGDIFontList::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
+gfxGDIFontList::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
                                     FontListSizes*    aSizes) const
 {
     gfxPlatformFontList::SizeOfExcludingThis(aMallocSizeOf, aSizes);
@@ -1078,7 +1080,7 @@ gfxGDIFontList::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
 }
 
 void
-gfxGDIFontList::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+gfxGDIFontList::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
                                     FontListSizes*    aSizes) const
 {
     aSizes->mFontListSize += aMallocSizeOf(this);

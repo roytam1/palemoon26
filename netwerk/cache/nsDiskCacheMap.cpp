@@ -17,6 +17,7 @@
 #include "nsISerializable.h"
 #include "nsSerializationHelper.h"
 
+#include "mozilla/MemoryReporting.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -1213,7 +1214,7 @@ nsDiskCacheMap::NotifyCapacityChange(uint32_t capacity)
 }
 
 size_t
-nsDiskCacheMap::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf)
+nsDiskCacheMap::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf)
 {
   size_t usage = aMallocSizeOf(mRecordArray);
 

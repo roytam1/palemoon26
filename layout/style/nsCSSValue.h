@@ -10,6 +10,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/MemoryReporting.h"
 
 #include "nsCOMPtr.h"
 #include "nsCRTGlue.h"
@@ -92,7 +93,7 @@ struct URLValue {
 
   nsIURI* GetURI() const;
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
   // If mURIResolved is false, mURI stores the base URI.
@@ -520,7 +521,7 @@ public:
   static already_AddRefed<nsStringBuffer>
     BufferFromString(const nsString& aValue);
 
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
   static const PRUnichar* GetBufferValue(nsStringBuffer* aBuffer) {
@@ -645,7 +646,7 @@ private:
     }
   }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 #undef CSSVALUE_LIST_FOR_EXTRA_VALUES
 
@@ -667,7 +668,7 @@ struct nsCSSValueList {
   bool operator!=(const nsCSSValueList& aOther) const
   { return !(*this == aOther); }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   nsCSSValue      mValue;
   nsCSSValueList* mNext;
@@ -686,7 +687,7 @@ private:
 struct nsCSSValueList_heap : public nsCSSValueList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueList_heap)
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
 // This has to be here so that the relationship between nsCSSValueList
@@ -773,7 +774,7 @@ struct nsCSSRect {
 struct nsCSSRect_heap : public nsCSSRect {
   NS_INLINE_DECL_REFCOUNTING(nsCSSRect_heap)
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
 // This has to be here so that the relationship between nsCSSRect
@@ -849,7 +850,7 @@ struct nsCSSValuePair {
 
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult) const;
 
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   nsCSSValue mXValue;
   nsCSSValue mYValue;
@@ -866,7 +867,7 @@ struct nsCSSValuePair_heap : public nsCSSValuePair {
 
   NS_INLINE_DECL_REFCOUNTING(nsCSSValuePair_heap)
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
 struct nsCSSValueTriplet {
@@ -950,7 +951,7 @@ struct nsCSSValueTriplet_heap : public nsCSSValueTriplet {
 
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueTriplet_heap)
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
 // This has to be here so that the relationship between nsCSSValuePair
@@ -995,7 +996,7 @@ struct nsCSSValuePairList {
   bool operator!=(const nsCSSValuePairList& aOther) const
   { return !(*this == aOther); }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   nsCSSValue          mXValue;
   nsCSSValue          mYValue;
@@ -1015,7 +1016,7 @@ private:
 struct nsCSSValuePairList_heap : public nsCSSValuePairList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValuePairList_heap)
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
 // This has to be here so that the relationship between nsCSSValuePairList
@@ -1064,7 +1065,7 @@ public:
     return !(*this == aOther);
   }
 
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
 struct nsCSSValueGradient {
@@ -1124,7 +1125,7 @@ public:
 
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueGradient)
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
   nsCSSValueGradient(const nsCSSValueGradient& aOther) MOZ_DELETE;

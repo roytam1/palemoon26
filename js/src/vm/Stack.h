@@ -7,6 +7,8 @@
 #ifndef vm_Stack_h
 #define vm_Stack_h
 
+#include "mozilla/MemoryReporting.h"
+
 #include "jsautooplen.h"
 #include "jsfun.h"
 #include "jsscript.h"
@@ -1075,7 +1077,7 @@ class InterpreterStack
 
     inline void purge(JSRuntime *rt);
 
-    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+    size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
         return allocator_.sizeOfExcludingThis(mallocSizeOf);
     }
 };
