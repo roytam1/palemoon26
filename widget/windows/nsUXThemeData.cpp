@@ -135,7 +135,18 @@ nsUXThemeData::GetTheme(nsUXThemeClass cls) {
 
 HMODULE
 nsUXThemeData::GetThemeDLL() {
-  if (!sThemeDLL)
+
+  static DWORD winver = 0;
+
+  if(!winver) {
+    winver = GetVersion();
+
+    // reorder from [build-num][minor][major] to [major][minor][build-num]
+    winver = (winver << 24) | ((winver >> 8 & 0xff) << 16) | (winver >> 16 & 0xffff);
+  }
+
+  // Windows version < 5.1.2474 should not load uxtheme (due to incompatible uxtheme)
+  if (winver >= 0x50109aa && !sThemeDLL)
     sThemeDLL = ::LoadLibraryW(kThemeLibraryName);
   return sThemeDLL;
 }
