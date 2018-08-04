@@ -24,7 +24,7 @@ namespace js {
 namespace jit {
 
 class StackValue;
-struct ICEntry;
+class ICEntry;
 class ICStub;
 
 class PCMappingSlotInfo

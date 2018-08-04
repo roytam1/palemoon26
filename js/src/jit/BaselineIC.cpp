@@ -2352,7 +2352,7 @@ DoToNumberFallback(JSContext *cx, ICToNumber_Fallback *stub, HandleValue arg, Mu
 {
     FallbackICSpew(cx, stub, "ToNumber");
     ret.set(arg);
-    return ToNumber(cx, ret.address());
+    return ToNumber(cx, ret);
 }
 
 typedef bool (*DoToNumberFallbackFn)(JSContext *, ICToNumber_Fallback *, HandleValue, MutableHandleValue);
@@ -5176,7 +5176,7 @@ TryAttachLengthStub(JSContext *cx, HandleScript script, ICGetProp_Fallback *stub
 
     RootedObject obj(cx, &val.toObject());
 
-    if (obj->isArray() && res.isInt32()) {
+    if (obj->is<ArrayObject>() && res.isInt32()) {
         IonSpew(IonSpew_BaselineIC, "  Generating GetProp(Array.length) stub");
         ICGetProp_ArrayLength::Compiler compiler(cx);
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
@@ -5531,7 +5531,7 @@ ICGetProp_ArrayLength::Compiler::generateStubCode(MacroAssembler &masm)
 
     // Unbox R0 and guard it's an array.
     Register obj = masm.extractObject(R0, ExtractTemp0);
-    masm.branchTestObjClass(Assembler::NotEqual, obj, scratch, &ArrayClass, &failure);
+    masm.branchTestObjClass(Assembler::NotEqual, obj, scratch, &ArrayObject::class_, &failure);
 
     // Load obj->elements->length.
     masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratch);
@@ -8158,7 +8158,7 @@ ICTypeOf_Typed::Compiler::generateStubCode(MacroAssembler &masm)
 
 static bool
 DoCreateRestParameter(JSContext *cx, BaselineFrame *frame, ICRest_Fallback *stub,
-                      HandleTypeObject type, MutableHandleValue res)
+                      MutableHandleValue res)
 {
     FallbackICSpew(cx, stub, "Rest");
 
@@ -8170,19 +8170,12 @@ DoCreateRestParameter(JSContext *cx, BaselineFrame *frame, ICRest_Fallback *stub
     JSObject *obj = NewDenseCopiedArray(cx, numRest, rest, NULL);
     if (!obj)
         return false;
-    obj->setType(type);
-
-    // Ensure that values in the rest array are represented in the type of the
-    // array.
-    for (unsigned i = 0; i < numRest; i++)
-        types::AddTypePropertyId(cx, obj, JSID_VOID, rest[i]);
-
     res.setObject(*obj);
     return true;
 }
 
 typedef bool(*DoCreateRestParameterFn)(JSContext *cx, BaselineFrame *, ICRest_Fallback *,
-                                       HandleTypeObject, MutableHandleValue);
+                                       MutableHandleValue);
 static const VMFunction DoCreateRestParameterInfo =
     FunctionInfo<DoCreateRestParameterFn>(DoCreateRestParameter);
 
@@ -8191,7 +8184,6 @@ ICRest_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 {
     EmitRestoreTailCallReg(masm);
 
-    masm.push(R0.scratchReg()); // type
     masm.push(BaselineStubReg); // stub
     masm.pushBaselineFramePtr(BaselineFrameReg, R0.scratchReg()); // frame pointer
 

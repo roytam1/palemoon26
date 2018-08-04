@@ -1520,6 +1520,9 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
     const jschar *chars = linear->chars();
     size_t length = linear->length();
 
+    /* Protect inlined chars from root analysis poisoning. */
+    SkipRoot skip(cx, &chars);
+
     /*
      * NB: (new Function) is not lexically closed by its caller, it's just an
      * anonymous function in the top-level scope that its constructor inhabits.
@@ -1542,9 +1545,9 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::IsBuiltinFunctionConstructor(JSFunction *fun)
+JSFunction::isBuiltinFunctionConstructor()
 {
-    return fun->maybeNative() == Function;
+    return maybeNative() == Function;
 }
 
 JSFunction *
