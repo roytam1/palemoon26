@@ -20,6 +20,7 @@
 #include "vm/Shape.h"
 
 #include "jscompartmentinlines.h"
+#include "jsinferinlines.h"
 
 #include "vm/Shape-inl.h"
 
