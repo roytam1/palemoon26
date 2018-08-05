@@ -414,18 +414,12 @@ WebConsoleFrame.prototype = {
     return deferred.promise;
   },
 
-  _persistLog: null,
-
   /**
-   * Getter for the persistent logging preference. This value is cached per
-   * instance to avoid reading the pref too often.
+   * Getter for the persistent logging preference.
    * @type boolean
    */
   get persistLog() {
-    if (this._persistLog === null) {
-      this._persistLog = Services.prefs.getBoolPref(PREF_PERSISTLOG);
-    }
-    return this._persistLog;
+    return Services.prefs.getBoolPref(PREF_PERSISTLOG);
   },
 
   /**
@@ -2351,7 +2345,7 @@ WebConsoleFrame.prototype = {
    *        The specific element that will hold each part of the console.log
    *        output.
    * @param object aBody
-   *        The object given by this.logConsoleAPIMessage(). This object holds
+   *        The object?given by this.logConsoleAPIMessage(). This object holds
    *        the call information that we need to display - mainly the arguments
    *        array of the given API call.
    */

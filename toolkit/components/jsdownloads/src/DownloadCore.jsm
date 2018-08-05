@@ -470,6 +470,23 @@ DownloadSource.prototype = {
    * should be sent or the download source is not HTTP.
    */
   referrer: null,
+
+  /**
+   * Returns a static representation of the current object state.
+   *
+   * @return A JavaScript object that can be serialized to JSON.
+   */
+  serialize: function DS_serialize()
+  {
+    let serialized = { uri: this.uri.spec };
+    if (this.isPrivate) {
+      serialized.isPrivate = true;
+    }
+    if (this.referrer) {
+      serialized.referrer = this.referrer.spec;
+    }
+    return serialized;
+  },
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -486,6 +503,16 @@ DownloadTarget.prototype = {
    * The nsIFile for the download target.
    */
   file: null,
+
+  /**
+   * Returns a static representation of the current object state.
+   *
+   * @return A JavaScript object that can be serialized to JSON.
+   */
+  serialize: function DT_serialize()
+  {
+    return { file: this.file.path };
+  },
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -582,6 +609,16 @@ DownloadSaver.prototype = {
    * Cancels the download.
    */
   cancel: function DS_cancel()
+  {
+    throw new Error("Not implemented.");
+  },
+
+  /**
+   * Returns a static representation of the current object state.
+   *
+   * @return A JavaScript object that can be serialized to JSON.
+   */
+  serialize: function DS_serialize()
   {
     throw new Error("Not implemented.");
   },
@@ -715,6 +752,14 @@ DownloadCopySaver.prototype = {
       this._backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
       this._backgroundFileSaver = null;
     }
+  },
+
+  /**
+   * Implements "DownloadSaver.serialize".
+   */
+  serialize: function DCS_serialize()
+  {
+    return { type: "copy" };
   },
 };
 
