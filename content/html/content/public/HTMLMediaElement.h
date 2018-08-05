@@ -1122,6 +1122,9 @@ protected:
   // Is this media element playing?
   bool mPlayingThroughTheAudioChannel;
 
+  // Has this element been in a document?
+  bool mWasInDocument;
+
   // An agent used to join audio channel service.
   nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 

@@ -240,6 +240,9 @@ pref("media.autoplay.allowscripted", true);
 // MediaDecoderReader's mVideoQueue.
 pref("media.video-queue.default-size", 10);
 
+// Whether to disable the video stats to prevent fingerprinting
+pref("media.video_stats.enabled", true);
+
 // Whether to enable the audio writing APIs on the audio element
 pref("media.audio_data.enabled", true);
 

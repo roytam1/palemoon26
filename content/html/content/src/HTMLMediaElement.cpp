@@ -1921,6 +1921,7 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mDownloadSuspendedByCache(false),
     mAudioChannelType(AUDIO_CHANNEL_NORMAL),
     mPlayingThroughTheAudioChannel(false),
+    mWasInDocument(false),
     mHasUserInteraction(false)
 {
 #ifdef PR_LOGGING
@@ -2366,6 +2367,8 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
     // It's value may have changed, so update it.
     UpdatePreloadAction();
 
+    mWasInDocument = true;
+
     if (aDocument->HasAudioAvailableListeners()) {
       // The document already has listeners for the "MozAudioAvailable"
       // event, so the decoder must be notified so it initiates
@@ -2380,8 +2383,9 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
 void HTMLMediaElement::UnbindFromTree(bool aDeep,
                                       bool aNullParent)
 {
-  if (!mPaused && mNetworkState != nsIDOMHTMLMediaElement::NETWORK_EMPTY)
+  if (!mPaused && mNetworkState != nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
     Pause();
+  }
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
@@ -3082,7 +3086,10 @@ bool HTMLMediaElement::CanActivateAutoplay()
   // For stream inputs, we activate autoplay on HAVE_CURRENT_DATA because
   // this element itself might be blocking the stream from making progress by
   // being paused.
+  // If we were in a document, but we have been removed, we should not start the
+  // playback.
   return !mPausedForInactiveDocumentOrChannel &&
+         mWasInDocument && IsInDoc() &&
          mAutoplaying &&
          mPaused &&
          (mDownloadSuspendedByCache ||
