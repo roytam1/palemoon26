@@ -3,10 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "secrng.h"
+#include "secerr.h"
 
 #ifdef XP_WIN
 #include <windows.h>
+#include <shlobj.h>     /* for CSIDL constants */
 #include <time.h>
+#include <io.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include "prio.h"
+#include "prerror.h"
+
+static PRInt32  filesToRead;
+static DWORD    totalFileBytes;
+static DWORD    maxFileBytes	= 250000;	/* 250 thousand */
+static DWORD    dwNumFiles, dwReadEvery, dwFileToRead;
+static PRBool   usedWindowsPRNG;
 
 static BOOL
 CurrentClockTickTime(LPDWORD lpdwHigh, LPDWORD lpdwLow)
@@ -68,6 +82,187 @@ size_t RNG_GetNoise(void *buf, size_t maxbuf)
     n += nBytes;
 
     return n;
+}
+
+typedef PRInt32 (* Handler)(const PRUnichar *);
+#define MAX_DEPTH 2
+#define MAX_FOLDERS 4
+#define MAX_FILES 1024
+
+static void
+EnumSystemFilesInFolder(Handler func, PRUnichar* szSysDir, int maxDepth) 
+{
+    int                 iContinue;
+    unsigned int        uFolders  = 0;
+    unsigned int        uFiles    = 0;
+    HANDLE              lFindHandle;
+    WIN32_FIND_DATAW    fdData;
+    PRUnichar           szFileName[_MAX_PATH];
+
+    if (maxDepth < 0)
+    	return;
+    // append *.* so we actually look for files.
+    _snwprintf(szFileName, _MAX_PATH, L"%s\\*.*", szSysDir);
+    szFileName[_MAX_PATH - 1] = L'\0';
+
+    lFindHandle = FindFirstFileW(szFileName, &fdData);
+    if (lFindHandle == INVALID_HANDLE_VALUE)
+        return;
+    do {
+	iContinue = 1;
+	if (wcscmp(fdData.cFileName, L".") == 0 ||
+            wcscmp(fdData.cFileName, L"..") == 0) {
+	    // skip "." and ".."
+	} else {
+	    // pass the full pathname to the callback
+	    _snwprintf(szFileName, _MAX_PATH, L"%s\\%s", szSysDir, 
+		       fdData.cFileName);
+	    szFileName[_MAX_PATH - 1] = L'\0';
+	    if (fdData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+		if (++uFolders <= MAX_FOLDERS)
+		    EnumSystemFilesInFolder(func, szFileName, maxDepth - 1);
+	    } else {
+		iContinue = (++uFiles <= MAX_FILES) && !(*func)(szFileName);
+	    }
+	}
+	if (iContinue)
+	    iContinue = FindNextFileW(lFindHandle, &fdData);
+    } while (iContinue);
+    FindClose(lFindHandle);
+}
+
+typedef BOOL 
+(WINAPI *SHGetSpecialFolderPathWFn)(
+    HWND hwndOwner,
+    LPWSTR lpszPath,
+    int nFolder,
+    BOOL fCreate);
+
+static BOOL
+EnumSystemFiles(Handler func)
+{
+    HMODULE hModule;
+    SHGetSpecialFolderPathWFn pSHGetSpecialFolderPathW;
+    PRUnichar szSysDir[_MAX_PATH];
+    static const int folders[] = {
+        CSIDL_BITBUCKET,  
+        CSIDL_RECENT,
+#ifndef WINCE     
+        CSIDL_INTERNET_CACHE, 
+        CSIDL_HISTORY,
+#endif
+        0
+    };
+    int i = 0;
+    if (_MAX_PATH > (i = GetTempPathW(_MAX_PATH, szSysDir))) {
+        if (i > 0 && szSysDir[i-1] == L'\\')
+            szSysDir[i-1] = L'\0'; // we need to lop off the trailing slash
+        EnumSystemFilesInFolder(func, szSysDir, MAX_DEPTH);
+    }
+    hModule = LoadLibrary("shell32.dll");
+    if (hModule != NULL) {
+      pSHGetSpecialFolderPathW = (SHGetSpecialFolderPathWFn)
+        GetProcAddress(hModule, "SHGetSpecialFolderPathW");
+      if (pSHGetSpecialFolderPathW) {
+        for(i = 0; folders[i]; i++) {
+            DWORD rv = pSHGetSpecialFolderPathW(NULL, szSysDir, folders[i], 0);
+            if (szSysDir[0])
+                EnumSystemFilesInFolder(func, szSysDir, MAX_DEPTH);
+            szSysDir[0] =  L'\0';
+        }
+      }
+      FreeLibrary(hModule);
+    }
+    return PR_TRUE;
+}
+
+static PRInt32
+CountFiles(const PRUnichar *file)
+{
+    dwNumFiles++;
+    return 0;
+}
+
+static int
+ReadSingleFile(const char *filename)
+{
+    PRFileDesc *    file;
+    unsigned char   buffer[1024];
+
+    file = PR_Open(filename, PR_RDONLY, 0);
+    if (file != NULL) {
+	while (PR_Read(file, buffer, sizeof buffer) > 0)
+	    ;
+        PR_Close(file);
+    }
+    return (file != NULL);
+}
+
+static PRInt32
+ReadOneFile(const PRUnichar *szFileName)
+{
+    char narrowFileName[_MAX_PATH];
+
+    if (dwNumFiles == dwFileToRead) {
+	int success = WideCharToMultiByte(CP_ACP, 0, szFileName, -1, 
+					  narrowFileName, _MAX_PATH, 
+					  NULL, NULL);
+	if (success)
+	    success = ReadSingleFile(narrowFileName);
+    	if (!success)
+	    dwFileToRead++; /* couldn't read this one, read the next one. */
+    }
+    dwNumFiles++;
+    return dwNumFiles > dwFileToRead;
+}
+
+static PRInt32
+ReadFiles(const PRUnichar *szFileName)
+{
+    char narrowFileName[_MAX_PATH];
+
+    if ((dwNumFiles % dwReadEvery) == 0) {
+	++filesToRead;
+    }
+    if (filesToRead) {
+	DWORD prevFileBytes = totalFileBytes;
+	int   iContinue     = WideCharToMultiByte(CP_ACP, 0, szFileName, -1, 
+						  narrowFileName, _MAX_PATH, 
+						  NULL, NULL);
+	if (iContinue) {
+	    RNG_FileForRNG(narrowFileName);
+	}
+	if (prevFileBytes < totalFileBytes) {
+	    --filesToRead;
+	}
+    }
+    dwNumFiles++;
+    return (totalFileBytes >= maxFileBytes);
+}
+
+static void
+ReadSystemFiles(void)
+{
+    // first count the number of files
+    dwNumFiles = 0;
+    if (!EnumSystemFiles(CountFiles))
+        return;
+
+    RNG_RandomUpdate(&dwNumFiles, sizeof(dwNumFiles));
+
+    // now read the first 10 readable files, then 10 or 11 files
+    // spread throughout the system directory
+    filesToRead = 10;
+    if (dwNumFiles == 0)
+        return;
+
+    dwReadEvery = dwNumFiles / 10;
+    if (dwReadEvery == 0)
+        dwReadEvery = 1;  // less than 10 files
+
+    dwNumFiles = 0;
+    totalFileBytes = 0;
+    EnumSystemFiles(ReadFiles);
 }
 
 void RNG_SystemInfoForRNG(void)
@@ -132,6 +327,59 @@ void RNG_SystemInfoForRNG(void)
         RNG_RandomUpdate(&dwNumClusters,  sizeof(dwNumClusters));
     }
 
+    // Skip the potentially slow file scanning if the OS's PRNG worked.
+    if (!usedWindowsPRNG)
+	ReadSystemFiles();
+
+    nBytes = RNG_GetNoise(buffer, 20);  // get up to 20 bytes
+    RNG_RandomUpdate(buffer, nBytes);
+}
+
+static void rng_systemJitter(void)
+{   
+    dwNumFiles = 0;
+    EnumSystemFiles(ReadOneFile);
+    dwFileToRead++;
+    if (dwFileToRead >= dwNumFiles) {
+	dwFileToRead = 0;
+    }
+}
+
+
+void RNG_FileForRNG(const char *filename)
+{
+    FILE*           file;
+    int             nBytes;
+    struct stat     stat_buf;
+    unsigned char   buffer[1024];
+
+    /* windows doesn't initialize all the bytes in the stat buf,
+     * so initialize them all here to avoid UMRs.
+     */
+    memset(&stat_buf, 0, sizeof stat_buf);
+
+    if (stat((char *)filename, &stat_buf) < 0)
+        return;
+
+    RNG_RandomUpdate((unsigned char*)&stat_buf, sizeof(stat_buf));
+
+    file = fopen((char *)filename, "r");
+    if (file != NULL) {
+        for (;;) {
+            size_t  bytes = fread(buffer, 1, sizeof(buffer), file);
+
+            if (bytes == 0)
+                break;
+
+            RNG_RandomUpdate(buffer, bytes);
+            totalFileBytes += bytes;
+            if (totalFileBytes > maxFileBytes)
+                break;
+        }
+
+        fclose(file);
+    }
+
     nBytes = RNG_GetNoise(buffer, 20);  // get up to 20 bytes
     RNG_RandomUpdate(buffer, nBytes);
 }
@@ -190,18 +438,21 @@ size_t RNG_SystemRNG(void *dest, size_t maxLen)
     HCRYPTPROV hCryptProv;
     size_t bytes = 0;
 
+    usedWindowsPRNG = PR_FALSE;
     hModule = LoadLibrary("advapi32.dll");
     if (hModule == NULL) {
-	return bytes;
+	return rng_systemFromNoise(dest,maxLen);
     }
     pRtlGenRandom = (RtlGenRandomFn)
 	GetProcAddress(hModule, "SystemFunction036");
-
     if (pRtlGenRandom) {
 	if (pRtlGenRandom(dest, maxLen)) {
 	    bytes = maxLen;
-	    goto done;
+	    usedWindowsPRNG = PR_TRUE;
+	} else {
+	    bytes = rng_systemFromNoise(dest,maxLen);
 	}
+	goto done;
     }
     pCryptAcquireContextA = (CryptAcquireContextAFn)
 	GetProcAddress(hModule, "CryptAcquireContextA");
@@ -210,14 +461,19 @@ size_t RNG_SystemRNG(void *dest, size_t maxLen)
     pCryptGenRandom = (CryptGenRandomFn)
 	GetProcAddress(hModule, "CryptGenRandom");
     if (!pCryptAcquireContextA || !pCryptReleaseContext || !pCryptGenRandom) {
-	return bytes;
+	bytes = rng_systemFromNoise(dest,maxLen);
+	goto done;
     }
     if (pCryptAcquireContextA(&hCryptProv, NULL, NULL,
 	PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
 	if (pCryptGenRandom(hCryptProv, maxLen, dest)) {
 	    bytes = maxLen;
+	    usedWindowsPRNG = PR_TRUE;
 	}
 	pCryptReleaseContext(hCryptProv, 0);
+    }
+    if (bytes == 0) {
+	bytes = rng_systemFromNoise(dest,maxLen);
     }
 done:
     FreeLibrary(hModule);

@@ -20,19 +20,21 @@ IMPORT_LIBRARY = $(OBJDIR)/$(IMPORT_LIB_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION)
 RES = $(OBJDIR)/$(LIBRARY_NAME).res
 RESNAME = $(LIBRARY_NAME).rc
 
+#	-l$(SQLITE_LIB_NAME) 
 ifdef NS_USE_GCC
 EXTRA_SHARED_LIBS += \
 	-L$(SQLITE_LIB_DIR) \
-	-l$(SQLITE_LIB_NAME) \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \
+	-lsqlite3 \
 	$(NULL)
 else # ! NS_USE_GCC
 
+#	$(DIST)/lib/$(SQLITE_LIB_NAME).lib 
 EXTRA_SHARED_LIBS += \
 	$(SQLITE_LIB_DIR)/$(SQLITE_LIB_NAME).lib \
 	$(NSSUTIL_LIB_DIR)/nssutil3.lib \
