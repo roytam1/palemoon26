@@ -9,6 +9,7 @@ import os
 import re
 import string
 import math
+import itertools
 
 from WebIDL import BuiltinTypes, IDLBuiltinType, IDLNullValue, IDLSequenceType, IDLType
 from Configuration import NoSuchDescriptorError, getTypesFromDescriptor, getTypesFromDictionary, getTypesFromCallback, Descriptor
@@ -723,6 +724,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     implheaders = set(["UnionTypes.h"])
     declarations = set()
     unionStructs = dict()
+    unionReturnValues = dict()
 
     def addInfoForType(t, descriptor=None, dictionary=None):
         """
@@ -739,6 +741,10 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                                              config)
             # FIXME: Unions are broken in workers.  See bug 809899.
             unionStructs[name] = CGUnionStruct(t, providers[0])
+            # Unions cannot contain JSObject*.
+            if not any(member.isObject() or member.isSpiderMonkeyInterface() for member in t.flatMemberTypes):
+                unionReturnValues[name] = CGUnionReturnValueStruct(t, providers[0])
+
             for f in t.flatMemberTypes:
                 f = f.unroll()
                 if f.isInterface():
@@ -760,7 +766,8 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     callForEachType(descriptors, dictionaries, callbacks, addInfoForType)
 
     return (headers, implheaders, declarations,
-            CGList(SortedDictValues(unionStructs), "\n"))
+            CGList(itertools.chain(SortedDictValues(unionStructs),
+                                   SortedDictValues(unionReturnValues)), "\n"))
 
 def UnionConversions(descriptors, dictionaries, callbacks, config):
     """
@@ -1700,8 +1707,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     def definition_body(self):
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:
-            getParentProto = "aCx, JS_GetObjectPrototype(aCx, aGlobal)"
             parentProtoType = "Rooted"
+            if self.descriptor.interface.getExtendedAttribute("ArrayClass"):
+                getParentProto = "aCx, JS_GetArrayPrototype(aCx, aGlobal)"
+            else:
+                getParentProto = "aCx, JS_GetObjectPrototype(aCx, aGlobal)"
         else:
             parentProtoName = self.descriptor.prototypeChain[-2]
             getParentProto = ("%s::GetProtoObject(aCx, aGlobal)" %
@@ -2101,7 +2111,7 @@ def InitUnforgeablePropertiesOnObject(descriptor, obj, properties, failureReturn
     if len(failureReturnValue) > 0:
         failureReturn += " " + failureReturnValue
     failureReturn += ";"
-        
+
     defineUnforgeables = ("if (!DefineUnforgeableAttributes(aCx, " + obj + ", %s)) {\n"
                           "  " + failureReturn + "\n"
                           "}")
@@ -2516,6 +2526,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                 lenientFloatCode=None,
                                 allowTreatNonCallableAsNull=False,
                                 isCallbackReturnValue=False,
+                                isInUnionReturnValue=False,
                                 sourceDescription="value"):
     """
     Get a template for converting a JS value to a native object based on the
@@ -3064,13 +3075,16 @@ for (uint32_t i = 0; i < length; ++i) {
                         isCallbackReturnValue)
 
         # Sequences and non-worker callbacks have to hold a strong ref to the
-        # thing being passed down.  Also, callback return values always end up
+        # thing being passed down.  Union return values must hold a strong ref
+        # because they may be returning an addrefed pointer.
+        # Also, callback return values always end up
         # addrefing anyway, so there is no point trying to avoid it here and it
         # makes other things simpler since we can assume the return value is a
         # strong ref.
         forceOwningType = ((descriptor.interface.isCallback() and
                             not descriptor.workers) or
                            isMember or
+                           isInUnionReturnValue or
                            isCallbackReturnValue)
 
         typeName = descriptor.nativeType
@@ -3287,6 +3301,8 @@ for (uint32_t i = 0; i < length; ++i) {
 
         if isOptional:
             declType = "Optional<nsAString>"
+        elif isInUnionReturnValue:
+            declType = "nsString"
         else:
             declType = "NonNull<nsAString>"
 
@@ -4103,15 +4119,7 @@ if (!returnArray) {
         # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
         return (setValue(toValue % result, True), False)
 
-    if type.isUnion():
-        if type.nullable():
-            prefix = "%s->"
-        else:
-            prefix = "%s."
-        return (wrapAndSetPtr((prefix % result) +
-                              "ToJSVal(cx, ${obj}, ${jsvalHandle})"), False)
-
-    if not (type.isPrimitive() or type.isDictionary() or type.isDate()):
+    if not (type.isUnion() or type.isPrimitive() or type.isDictionary() or type.isDate()):
         raise TypeError("Need to learn to wrap %s" % type)
 
     if type.nullable():
@@ -4121,6 +4129,10 @@ if (!returnArray) {
         return ("if (%s.IsNull()) {\n" % result +
                 CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
                 "}\n" + recTemplate, recInfal)
+
+    if type.isUnion():
+        return (wrapAndSetPtr("%s.ToJSVal(cx, ${obj}, ${jsvalHandle})" % result),
+                False)
 
     if type.isDictionary():
         return (wrapAndSetPtr("%s.ToObject(cx, ${obj}, ${jsvalHandle})" % result),
@@ -4325,7 +4337,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
             resultArgs = None
         return result, True, None, resultArgs
     if returnType.isUnion():
-        raise TypeError("Need to sort out ownership model for union retvals");
+        result = CGGeneric(returnType.unroll().name + "ReturnValue")
+        if returnType.nullable():
+            result = CGTemplatedType("Nullable", result)
+        return result, True, None, None
     if returnType.isDate():
         result = CGGeneric("Date")
         if returnType.nullable():
@@ -4428,7 +4443,7 @@ class CGCallGenerator(CGThing):
 
         if isFallible:
             self.cgRoot.prepend(CGGeneric("ErrorResult rv;"))
-            self.cgRoot.append(CGGeneric("rv.WouldReportJSException();"));
+            self.cgRoot.append(CGGeneric("rv.WouldReportJSException();"))
             self.cgRoot.append(CGGeneric("if (rv.Failed()) {"))
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
@@ -5797,7 +5812,7 @@ def getUnionAccessorSignatureType(type, descriptorProvider):
         typeName = CGTemplatedType("Nullable", typeName, isReference=True)
     return typeName
 
-def getUnionTypeTemplateVars(unionType, type, descriptorProvider):
+def getUnionTypeTemplateVars(unionType, type, descriptorProvider, isReturnValue=False):
     # For dictionaries and sequences we need to pass None as the failureCode
     # for getJSToNativeConversionInfo.
     # Also, for dictionaries we would need to handle conversion of
@@ -5822,7 +5837,7 @@ return true;"""
 }""" % name) + tryNextCode
     conversionInfo = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode=tryNextCode,
-        isDefinitelyObject=True,
+        isDefinitelyObject=True, isInUnionReturnValue=isReturnValue,
         sourceDescription="member of %s" % unionType)
 
     # This is ugly, but UnionMember needs to call a constructor with no
@@ -5916,7 +5931,7 @@ class CGUnionStruct(CGThing):
   }"""
         methods.extend(mapTemplate(methodTemplate, templateVars))
         # Now have to be careful: we do not want the SetAsObject() method!
-        setterTemplate = """ ${structType}& SetAs${name}()
+        setterTemplate = """  ${structType}& SetAs${name}()
   {
     mType = e${name};
     return mValue.m${name}.SetValue();
@@ -5978,7 +5993,7 @@ ${destructors}
         if self.type.hasNullableType:
             conversionsToJS.append("    case eNull:\n"
                                    "    {\n"
-                                   "      rval.set(JS::NullValue());\n"
+                                   "      rval.setNull();\n"
                                    "      return true;\n"
                                    "    }")
         conversionsToJS.extend(
@@ -6020,7 +6035,161 @@ ${doConversionsToJS}
                 "jsvalHandle": "rval",
                 "obj": "scopeObj",
                 "result": val,
-                "objectCanBeNonNull": True
+                })
+        return CGIndenter(CGList([CGGeneric("case e%(name)s:" % templateVars),
+                                  CGWrapper(CGIndenter(CGGeneric(wrapCode)),
+                                            pre="{\n",
+                                            post="\n}")],
+                                 "\n"),
+                          4).define()
+
+class CGUnionReturnValueStruct(CGThing):
+    def __init__(self, type, descriptorProvider):
+        CGThing.__init__(self)
+        self.type = type.unroll()
+        self.descriptorProvider = descriptorProvider
+        self.templateVars = map(
+            lambda t: getUnionTypeTemplateVars(self.type, t,
+                                               self.descriptorProvider,
+                                               isReturnValue=True),
+            self.type.flatMemberTypes)
+
+    def declare(self):
+        templateVars = self.templateVars
+
+        enumValues = []
+        methods = []
+        if self.type.hasNullableType:
+            enumValues.append("eNull")
+            methods.append("""  bool IsNull() const
+  {
+    return mType == eNull;
+  }
+
+  bool SetNull()
+  {
+    mType = eNull;
+    return true;
+  }""")
+
+        enumValues.extend(mapTemplate("e${name}", templateVars))
+        methodTemplate = "  ${structType}& SetAs${name}();"
+        methods.extend(mapTemplate(methodTemplate, templateVars))
+        values = mapTemplate("UnionMember<${structType} > m${name};", templateVars)
+        return string.Template("""
+class ${structName}ReturnValue {
+public:
+  ${structName}ReturnValue() : mType(eUninitialized)
+  {
+  }
+  ~${structName}ReturnValue();
+
+${methods}
+
+  bool ToJSVal(JSContext* cx, JS::Handle<JSObject*> scopeObj,
+               JS::MutableHandle<JS::Value> rval) const;
+
+private:
+  enum Type {
+    eUninitialized,
+    ${enumValues}
+  };
+  union Value {
+    ${values}
+  };
+
+  Type mType;
+  Value mValue;
+};
+
+""").substitute(
+    {
+       "structName": self.type.__str__(),
+       "methods": "\n\n".join(methods),
+       "enumValues": ",\n    ".join(enumValues),
+       "values": "\n    ".join(values)
+       })
+
+    def define(self):
+        templateVars = self.templateVars
+        conversionsToJS = []
+        if self.type.hasNullableType:
+            conversionsToJS.append("    case eNull:\n"
+                                   "    {\n"
+                                   "      rval.setNull();\n"
+                                   "      return true;\n"
+                                   "    }")
+        conversionsToJS.extend(
+            map(self.getConversionToJS,
+                zip(templateVars, self.type.flatMemberTypes)))
+
+        toJSVal = string.Template("""
+
+bool
+${structName}ReturnValue::ToJSVal(JSContext* cx, JS::Handle<JSObject*> scopeObj, JS::MutableHandle<JS::Value> rval) const
+{
+  switch (mType) {
+${doConversionsToJS}
+
+    case eUninitialized:
+    {
+      break;
+    }
+  }
+  return false;
+}
+""").substitute({
+                "structName": str(self.type),
+                "doConversionsToJS": "\n\n".join(conversionsToJS)
+                })
+        templateVars = self.templateVars
+
+        methods = []
+        methodTemplate = """${structType}&
+%sReturnValue::SetAs${name}()
+{
+  mType = e${name};
+  return mValue.m${name}.SetValue();
+}""" % str(self.type)
+        methods.extend(mapTemplate(methodTemplate, templateVars))
+
+        callDestructors = []
+        if self.type.hasNullableType:
+            callDestructors.append("      case eNull:\n"
+                                   "        break;")
+        callDestructors.extend(mapTemplate("    case e${name}:\n"
+                                           "       mValue.m${name}.Destroy();\n"
+                                           "       mType = eUninitialized;\n"
+                                           "       break;", templateVars))
+        destructor = string.Template("""
+${structName}ReturnValue::~${structName}ReturnValue()
+{
+  switch (mType) {
+${callDestructors}
+    case eUninitialized:
+      break;
+  }
+}
+
+""").substitute(
+    {
+       "structName": self.type.__str__(),
+       "callDestructors": "\n".join(callDestructors),
+       })
+
+        return destructor + "\n\n".join(methods) + toJSVal
+
+    def getConversionToJS(self, arg):
+        (templateVars, type) = arg
+        assert not type.nullable() # flatMemberTypes never has nullable types
+        val = "mValue.m%(name)s.Value()" % templateVars
+        wrapCode = wrapForType(
+            type, self.descriptorProvider,
+            {
+                "jsvalRef": "rval",
+                "jsvalHandle": "rval",
+                "obj": "scopeObj",
+                "result": val,
                 })
         return CGIndenter(CGList([CGGeneric("case e%(name)s:" % templateVars),
                                   CGWrapper(CGIndenter(CGGeneric(wrapCode)),
