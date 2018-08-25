@@ -6680,7 +6680,8 @@ PostMessageReadStructuredClone(JSContext* cx,
                                uint32_t data,
                                void* closure)
 {
-  NS_ASSERTION(closure, "Must have closure!");
+  StructuredCloneInfo* scInfo = static_cast<StructuredCloneInfo*>(closure);
+  NS_ASSERTION(scInfo, "Must have scInfo!");
 
   if (tag == SCTAG_DOM_BLOB || tag == SCTAG_DOM_FILELIST) {
     NS_ASSERTION(!data, "Data should be empty");
@@ -6709,6 +6710,7 @@ PostMessageReadStructuredClone(JSContext* cx,
       if (global) {
         JS::Rooted<JSObject*> obj(cx, port->WrapObject(cx, global));
         if (JS_WrapObject(cx, obj.address())) {
+          port->BindToOwner(scInfo->window);
           return obj;
         }
       }
@@ -6759,7 +6761,7 @@ PostMessageWriteStructuredClone(JSContext* cx,
     MessagePort* port = nullptr;
     nsresult rv = mozilla::dom::UnwrapObject<MessagePort>(cx, obj, port);
     if (NS_SUCCEEDED(rv) && scInfo->subsumes) {
-      nsRefPtr<MessagePort> newPort = port->Clone(scInfo->window);
+      nsRefPtr<MessagePort> newPort = port->Clone();
 
       return JS_WriteUint32Pair(writer, SCTAG_DOM_MESSAGEPORT, 0) &&
              JS_WriteBytes(writer, &newPort, sizeof(newPort)) &&
