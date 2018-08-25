@@ -179,6 +179,7 @@ webidl_files = \
   MessageChannel.webidl \
   MessageEvent.webidl \
   MessagePort.webidl \
+  MessagePortList.webidl \
   MobileMessageManager.webidl \
   MouseEvent.webidl \
   MouseScrollEvent.webidl \

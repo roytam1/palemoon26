@@ -102,6 +102,7 @@ MOCHITEST_FILES = \
 		test_focus_disabled.html \
 		test_bug847597.html \
 		test_bug855741.html \
+		test_messageEvent.html \
 		$(NULL)
 
 # Disabled on Windows due to intermittent failures.
