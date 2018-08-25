@@ -1020,7 +1020,7 @@ nsGenericHTMLElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
     else if (IsEventAttributeName(aAttribute)) {
       nsEventListenerManager* manager = GetListenerManager(false);
       if (manager) {
-        manager->RemoveEventHandler(aAttribute);
+        manager->RemoveEventHandler(aAttribute, EmptyString());
       }
     }
   }
