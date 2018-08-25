@@ -175,7 +175,9 @@ webidl_files = \
   MediaStreamAudioDestinationNode.webidl \
   MediaStreamEvent.webidl \
   MediaStreamTrack.webidl \
+  MessageChannel.webidl \
   MessageEvent.webidl \
+  MessagePort.webidl \
   MobileMessageManager.webidl \
   MouseEvent.webidl \
   MouseScrollEvent.webidl \
