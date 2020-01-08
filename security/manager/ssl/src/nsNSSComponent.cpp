@@ -1023,7 +1023,7 @@ nsNSSComponent::setEnabledTLSVersions(nsIPrefBranch * prefBranch)
 {
   // keep these values in sync with security-prefs.js and firefox.js
   static const int32_t PSM_DEFAULT_MIN_TLS_VERSION = 0;
-  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 1;
+  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 3;
 
   int32_t minVersion = PSM_DEFAULT_MIN_TLS_VERSION;
   int32_t maxVersion = PSM_DEFAULT_MAX_TLS_VERSION;
