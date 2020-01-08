@@ -466,6 +466,7 @@ CONST_OID aes128_OFB[] 				= { AES, 3 };
 CONST_OID aes128_CFB[] 				= { AES, 4 };
 #endif
 CONST_OID aes128_KEY_WRAP[]			= { AES, 5 };
+CONST_OID aes128_GCM[] 				= { AES, 6 };
 
 CONST_OID aes192_ECB[] 				= { AES, 21 };
 CONST_OID aes192_CBC[] 				= { AES, 22 };
@@ -474,6 +475,7 @@ CONST_OID aes192_OFB[] 				= { AES, 23 };
 CONST_OID aes192_CFB[] 				= { AES, 24 };
 #endif
 CONST_OID aes192_KEY_WRAP[]			= { AES, 25 };
+CONST_OID aes192_GCM[] 				= { AES, 26 };
 
 CONST_OID aes256_ECB[] 				= { AES, 41 };
 CONST_OID aes256_CBC[] 				= { AES, 42 };
@@ -482,6 +484,7 @@ CONST_OID aes256_OFB[] 				= { AES, 43 };
 CONST_OID aes256_CFB[] 				= { AES, 44 };
 #endif
 CONST_OID aes256_KEY_WRAP[]			= { AES, 45 };
+CONST_OID aes256_GCM[] 				= { AES, 46 };
 
 CONST_OID camellia128_CBC[]			= { CAMELLIA_ENCRYPT_OID, 2};
 CONST_OID camellia192_CBC[]			= { CAMELLIA_ENCRYPT_OID, 3};
@@ -1639,7 +1642,14 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "Microsoft Trust List Signing",
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
     OD( x520Name, SEC_OID_AVA_NAME,
-    	"X520 Name",    CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION )
+	"X520 Name",    CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+
+    OD( aes128_GCM, SEC_OID_AES_128_GCM,
+	"AES-128-GCM", CKM_AES_GCM, INVALID_CERT_EXTENSION ),
+    OD( aes192_GCM, SEC_OID_AES_192_GCM,
+	"AES-192-GCM", CKM_AES_GCM, INVALID_CERT_EXTENSION ),
+    OD( aes256_GCM, SEC_OID_AES_256_GCM,
+	"AES-256-GCM", CKM_AES_GCM, INVALID_CERT_EXTENSION )
 };
 
 /* PRIVATE EXTENDED SECOID Table
@@ -1887,14 +1897,14 @@ handleHashAlgSupport(char * envVal)
 		*nextArg++ = '\0';
 	    }
 	}
-	notEnable = (*arg == '-') ? NSS_USE_ALG_IN_CERT_SIGNATURE : 0;
+	notEnable = (*arg == '-') ? (NSS_USE_ALG_IN_CERT_SIGNATURE|NSS_USE_ALG_IN_SSL_KX) : 0;
 	if ((*arg == '+' || *arg == '-') && *++arg) { 
 	    int i;
 
 	    for (i = 1; i < SEC_OID_TOTAL; i++) {
 	        if (oids[i].desc && strstr(arg, oids[i].desc)) {
 		     xOids[i].notPolicyFlags = notEnable |
-		    (xOids[i].notPolicyFlags & ~NSS_USE_ALG_IN_CERT_SIGNATURE);
+		    (xOids[i].notPolicyFlags & ~(NSS_USE_ALG_IN_CERT_SIGNATURE|NSS_USE_ALG_IN_SSL_KX));
 		}
 	    }
 	}
@@ -1922,12 +1932,12 @@ SECOID_Init(void)
 	/* initialize any policy flags that are disabled by default */
 	xOids[SEC_OID_MD2                           ].notPolicyFlags = ~0;
 	xOids[SEC_OID_MD4                           ].notPolicyFlags = ~0;
-	xOids[SEC_OID_MD5                           ].notPolicyFlags = ~0;
+	/*xOids[SEC_OID_MD5                           ].notPolicyFlags = ~0;*/
 	xOids[SEC_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
-	xOids[SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
+	/*xOids[SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;*/
 	xOids[SEC_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC].notPolicyFlags = ~0;
-	xOids[SEC_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC].notPolicyFlags = ~0;
+	/*xOids[SEC_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC].notPolicyFlags = ~0;*/
     }
 
     envVal = PR_GetEnv("NSS_HASH_ALG_SUPPORT");

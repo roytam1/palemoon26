@@ -67,6 +67,8 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 	    inf.creationTime   = sid->creationTime;
 	    inf.lastAccessTime = sid->lastAccessTime;
 	    inf.expirationTime = sid->expirationTime;
+            inf.extendedMasterSecretUsed = sid->u.ssl3.keys.extendedMasterSecretUsed;
+
 	    if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
 	        inf.sessionIDLength = SSL2_SESSIONID_BYTES;
 		memcpy(inf.sessionID, sid->u.ssl2.sessionID, 
@@ -158,6 +160,7 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 #define B_0  	  0,   0,   0
 
 #define M_AEAD_128 "AEAD", ssl_mac_aead, 128
+#define M_SHA384 "SHA384", ssl_hmac_sha384, 384
 #define M_SHA256 "SHA256", ssl_hmac_sha256, 256
 #define M_SHA	"SHA1", ssl_mac_sha, 160
 #define M_MD5	"MD5",  ssl_mac_md5, 128
@@ -214,6 +217,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
 #ifndef NSS_DISABLE_ECC
 /* ECC cipher suites */
 {0,CS(TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256), S_RSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0, },
+{0,CS(TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384), S_RSA, K_ECDHE, C_AESGCM, B_256, M_AEAD_128, 1, 0, 0, },
 {0,CS(TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256), S_RSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0, },
 {0,CS(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256), S_ECDSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0, },
 {0,CS(TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256), S_ECDSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0, },
