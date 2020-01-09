@@ -835,6 +835,8 @@ static const CipherPref CipherPrefs[] = {
    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, true },
  { "security.ssl3.ecdhe_ecdsa_aes_128_gcm_sha256",
    TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, true },
+ { "security.ssl3.ecdhe_rsa_aes_128_sha256",
+   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, true },
    
  { "security.ssl3.ecdhe_rsa_camellia_128_gcm_sha256",
    TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256, true },
