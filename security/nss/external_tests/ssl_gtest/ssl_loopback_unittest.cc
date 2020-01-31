@@ -40,6 +40,29 @@ class TlsServerKeyExchangeEcdhe {
   DataBuffer public_key_;
 };
 
+class TlsChaCha20Poly1305Test : public TlsConnectTls12 {
+ public:
+  void ConnectSendReceive(PRUint32 cipher_suite)
+  {
+    // Disable all ciphers.
+    client_->DisableCiphersByKeyExchange(ssl_kea_rsa);
+    client_->DisableCiphersByKeyExchange(ssl_kea_dh);
+    client_->DisableCiphersByKeyExchange(ssl_kea_ecdh);
+
+    // Re-enable ChaCha20/Poly1305.
+    SECStatus rv = SSL_CipherPrefSet(client_->ssl_fd(), cipher_suite, PR_TRUE);
+    EXPECT_EQ(SECSuccess, rv);
+
+    Connect();
+    SendReceive();
+
+    // Check that we used the right cipher suite.
+    int16_t actual, expected = static_cast<int16_t>(cipher_suite);
+    EXPECT_TRUE(client_->cipher_suite(&actual) && actual == expected);
+    EXPECT_TRUE(server_->cipher_suite(&actual) && actual == expected);
+  }
+};
+
 TEST_P(TlsConnectGeneric, SetupOnly) {}
 
 TEST_P(TlsConnectGeneric, Connect) {
