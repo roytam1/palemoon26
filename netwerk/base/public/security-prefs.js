@@ -33,6 +33,7 @@ pref("security.ssl3.dhe_rsa_aes_256_sha", true);
 pref("security.ssl3.dhe_rsa_camellia_256_sha", true);
 pref("security.ssl3.dhe_dss_aes_128_sha", true);
 pref("security.ssl3.dhe_dss_aes_256_sha", true);
+pref("security.ssl3.rsa_aes_256_sha384", true);
 pref("security.ssl3.rsa_aes_128_sha256", true);
 pref("security.ssl3.rsa_aes_128_sha", true);
 pref("security.ssl3.rsa_camellia_128_sha", true);
