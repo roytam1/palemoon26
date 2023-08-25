@@ -31,6 +31,9 @@ REDIST_FILES = \
   msvcp80.dll \
   msvcr80.dll \
   $(NULL)
+REDIST_OPENMP_FILES = \
+  vcomp.dll \
+  $(NULL)
 endif
 
 ifeq (1500,$(_MSC_VER))
@@ -40,12 +43,18 @@ REDIST_FILES = \
   msvcp90.dll \
   msvcr90.dll \
   $(NULL)
+REDIST_OPENMP_FILES = \
+  vcomp90.dll \
+  $(NULL)
 endif
 
 ifeq (1600,$(_MSC_VER))
 REDIST_FILES = \
   msvcp100.dll \
   msvcr100.dll \
+  $(NULL)
+REDIST_OPENMP_FILES = \
+  vcomp100.dll \
   $(NULL)
 endif
 
