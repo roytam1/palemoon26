@@ -19,10 +19,6 @@
 
 using namespace mozilla::widget;
 
-#ifndef MOZ_SAMPLE_TYPE_FLOAT32
-#error We expect 32bit float audio samples on desktop for the Windows Media Foundation media backend.
-#endif
-
 #include "MediaDecoder.h"
 #include "VideoUtils.h"
 
@@ -521,7 +517,11 @@ WMFReader::ConfigureAudioDecoder()
 
   HRESULT hr = ConfigureSourceReaderStream(mSourceReader,
                                            MF_SOURCE_READER_FIRST_AUDIO_STREAM,
+#ifdef MOZ_SAMPLE_TYPE_FLOAT32
                                            MFAudioFormat_Float,
+#else
+                                           MFAudioFormat_PCM,
+#endif
                                            codecs,
                                            numCodecs);
   if (FAILED(hr)) {

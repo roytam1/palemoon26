@@ -52,7 +52,7 @@ vpx_img_alloc
 vpx_codec_encode
 #endif
 #endif
-#ifdef MOZ_VORBIS
+#if defined(MOZ_VORBIS) || defined(MOZ_TREMOR)
 ogg_page_bos
 ogg_page_granulepos
 ogg_page_serialno
@@ -143,11 +143,15 @@ opus_decoder_destroy
 opus_decoder_ctl
 opus_decoder_get_nb_samples
 opus_decode
+#ifdef MOZ_SAMPLE_TYPE_FLOAT32
 opus_decode_float
+#endif
 opus_multistream_decoder_create
 opus_multistream_decoder_ctl
 opus_multistream_decoder_destroy
+#ifdef MOZ_SAMPLE_TYPE_FLOAT32
 opus_multistream_decode_float
+#endif
 opus_multistream_decode
 opus_packet_get_nb_frames
 opus_packet_get_samples_per_frame
@@ -155,7 +159,9 @@ opus_encoder_create
 opus_encoder_destroy
 opus_encoder_ctl
 opus_encode
+#ifdef MOZ_SAMPLE_TYPE_FLOAT32
 opus_encode_float
+#endif
 #endif
 ShInitialize
 ShFinalize

@@ -25,10 +25,14 @@ DISABLED_CSRCS           += \
                 $(NULL)
 DISABLED_CSRCS     += \
                 cubeb_resampler.cpp \
-                cubeb_wasapi.cpp \
                 $(NULL)
 DEFINES         += -DUSE_WINMM
+ifeq (1,$(MOZ_SAMPLE_TYPE_FLOAT32))
+DISABLED_CSRCS     += \
+                cubeb_wasapi.cpp \
+                $(NULL)
 DEFINES         += -DUSE_WASAPI
+endif
 endif
 
 ifeq ($(OS_TARGET),Android)

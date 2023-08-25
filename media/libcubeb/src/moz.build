@@ -50,8 +50,12 @@ if CONFIG['OS_TARGET'] == 'WINNT':
     ]
     CPP_SOURCES += [
         'cubeb_resampler.cpp',
-        'cubeb_wasapi.cpp',
     ]
+    if CONFIG['MOZ_SAMPLE_TYPE_FLOAT32']:
+        CPP_SOURCES += [
+            'cubeb_wasapi.cpp',
+        ]
+
 
 if CONFIG['OS_TARGET'] == 'Android':
     CSRCS += [
