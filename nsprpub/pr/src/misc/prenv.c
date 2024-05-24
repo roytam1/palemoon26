@@ -63,6 +63,11 @@ PR_IMPLEMENT(char*) PR_GetEnv(const char *var)
     return ev;
 }
 
+PR_IMPLEMENT(char*) PR_GetEnvSecure(const char *var)
+{
+  return PR_GetEnv(var);
+}
+
 PR_IMPLEMENT(PRStatus) PR_SetEnv(const char *string)
 {
     PRIntn result;
