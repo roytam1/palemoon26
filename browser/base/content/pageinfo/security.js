@@ -71,17 +71,23 @@ var security = {
       }
 
       switch (version) {
-        case nsISSLStatus.SSL_VERSION_3:
+        case 0/*sISSLStatus.SSL_VERSION_3*/:
           retval.version = "SSL 3";
           break;
-        case nsISSLStatus.TLS_VERSION_1:
+        case 1/*nsISSLStatus.TLS_VERSION_1*/:
           retval.version = "TLS 1.0";
           break;
-        case nsISSLStatus.TLS_VERSION_1_1:
+        case 2/*nsISSLStatus.TLS_VERSION_1_1*/:
           retval.version = "TLS 1.1";
           break;
-        case nsISSLStatus.TLS_VERSION_1_2:
-          retval.version = "TLS 1.2"
+        case 3/*nsISSLStatus.TLS_VERSION_1_2*/:
+          retval.version = "TLS 1.2";
+          break;
+        case 4/*nsISSLStatus.TLS_VERSION_1_3*/:
+          retval.version = "TLS 1.3";
+          break;
+        default:
+          retval.version = "v"+version;
           break;
       }
 
