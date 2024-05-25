@@ -935,7 +935,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   MOZ_ASSERT(rv == SECSuccess);
   if (rv == SECSuccess) {
     // Get the protocol version
-    // 0=ssl3, 1=tls1, 2=tls1.1, 3=tls1.2
+    // 0=ssl3, 1=tls1, 2=tls1.1, 3=tls1.2, 4=tls1.3
     unsigned int versionEnum = channelInfo.protocolVersion & 0xFF;
 
     SSLCipherSuiteInfo cipherInfo;
@@ -948,7 +948,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
       status->mSecretKeyLength = cipherInfo.effectiveKeyBits;
       status->mCipherSuite.Assign(cipherInfo.cipherSuiteName);
       status->mCipherName.Assign(cipherInfo.symCipherName);
-      status->mProtocolVersion = channelInfo.protocolVersion & 0xFF;
+      status->mProtocolVersion = versionEnum;
     }
       
   }
