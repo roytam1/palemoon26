@@ -454,5 +454,4 @@ EXPORTS ;-
 ;+NSPR_4.10.3 {
 ;+      global:
 		PR_SyncMemMap;
-		PR_GetEnvSecure;
-;+} NSPR_4.10.3;
+;+} NSPR_4.9.2;
