@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 pref("security.tls.version.min", 1);
-pref("security.tls.version.max", 3);
+pref("security.tls.version.max", 4);
 pref("security.enable_tls_session_tickets", true);
 pref("security.enable_md5_signatures", false);
 
@@ -17,6 +17,9 @@ pref("security.ssl.enable_ocsp_stapling", true);
 pref("security.ssl.allow_unsafe_ocsp_response", false);
 
 // Cipher suites enabled by default
+pref("security.tls13.chacha20_poly1305_sha256", true);
+pref("security.tls13.aes_128_gcm_sha256", true);
+pref("security.tls13.aes_256_gcm_sha384", true);
 pref("security.ssl3.ecdhe_ecdsa_chacha20_poly1305_sha256", true);
 pref("security.ssl3.ecdhe_rsa_chacha20_poly1305_sha256", true);
 pref("security.ssl3.ecdhe_rsa_aes_256_gcm_sha384", true);
